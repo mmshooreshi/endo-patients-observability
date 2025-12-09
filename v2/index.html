@@ -1,0 +1,760 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Users, FileText, Activity, Calendar, Settings, ChevronRight, 
+  Plus, Search, Filter, Download, UserCheck, AlertCircle, 
+  CheckCircle, Clock, Save, X, Edit3, Camera, FileDigit, 
+  Trash2, Menu, LogOut, ChevronDown, Stethoscope, Microscope
+} from 'lucide-react';
+
+// --- MOCK DATA GENERATORS (Schema Compliant) ---
+
+const generateId = () => Math.random().toString(36).substr(2, 9);
+const now = new Date().toISOString();
+
+const mockUsers = [
+  { user_id: 'u1', name: 'Dr. Arshia Mirakhor', email: 'arshiamirakhor@dental.edu', role: 'student', active: true },
+  { user_id: 'u2', name: 'Dr. Ostad-e-Endo', email: 'ostad@dental.edu', role: 'faculty', active: true, title: 'Endodontist' },
+  { user_id: 'u3', name: 'Admin User', email: 'admin@dental.edu', role: 'admin', active: true },
+];
+
+const mockPatients = [
+  {
+    patient_id: 'p1',
+    first_name: 'Bimar',
+    last_name: 'Bimari',
+    date_of_birth: '1990-05-15',
+    sex: 'female',
+    medical_notes: 'History of asthma',
+    systemic_conditions: ['Asthma'],
+    allergies: ['Penicillin'],
+    created_at: '2023-10-01T10:00:00Z'
+  },
+  {
+    patient_id: 'p2',
+    first_name: 'Alireza',
+    last_name: 'Koleini',
+    date_of_birth: '1985-08-20',
+    sex: 'male',
+    medical_notes: 'None',
+    systemic_conditions: [],
+    allergies: [],
+    created_at: '2023-10-05T14:00:00Z'
+  }
+];
+
+const mockCases = [
+  {
+    case_id: 'c1',
+    patient_id: 'p1',
+    primary_student_id: 'u1',
+    tooth_number_fdi: '16', // Maxillary Right First Molar
+    tooth_arch: 'maxillary',
+    tooth_type: 'molar',
+    chief_complaint: 'Pain to cold and biting',
+    pulp_diagnosis: 'Symptomatic Irreversible Pulpitis',
+    periapical_diagnosis: 'Symptomatic Apical Periodontitis',
+    treatment_indication: 'Caries into pulp',
+    planned_treatment_type: 'non_surgical_RCT',
+    case_status: 'in_treatment',
+    opened_at: '2023-10-10T09:00:00Z',
+    difficulty: 'Moderate'
+  },
+  {
+    case_id: 'c2',
+    patient_id: 'p2',
+    primary_student_id: 'u1',
+    tooth_number_fdi: '21', // Maxillary Left Central Incisor
+    tooth_arch: 'maxillary',
+    tooth_type: 'anterior',
+    chief_complaint: 'Broken tooth due to trauma',
+    pulp_diagnosis: 'Necrotic Pulp',
+    periapical_diagnosis: 'Chronic Apical Abscess',
+    treatment_indication: 'Trauma',
+    planned_treatment_type: 'non_surgical_RCT',
+    case_status: 'open',
+    opened_at: '2023-10-12T11:00:00Z',
+    difficulty: 'Simple'
+  }
+];
+
+// --- COMPONENT LIBRARY ---
+
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${className}`}>
+    {children}
+  </div>
+);
+
+const Badge = ({ children, color = "blue" }) => {
+  const colors = {
+    blue: "bg-blue-100 text-blue-800",
+    green: "bg-green-100 text-green-800",
+    yellow: "bg-yellow-100 text-yellow-800",
+    red: "bg-red-100 text-red-800",
+    gray: "bg-gray-100 text-gray-800",
+  };
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[color] || colors.gray}`}>
+      {children}
+    </span>
+  );
+};
+
+const Button = ({ children, onClick, variant = "primary", icon: Icon, className = "", disabled=false }) => {
+  const baseStyle = "flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  const variants = {
+    primary: "bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500",
+    secondary: "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-indigo-500",
+    danger: "bg-red-50 text-red-700 hover:bg-red-100 focus:ring-red-500",
+    ghost: "bg-transparent text-slate-600 hover:bg-slate-100",
+  };
+
+  return (
+    <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className}`}>
+      {Icon && <Icon className="w-4 h-4 mr-2" />}
+      {children}
+    </button>
+  );
+};
+
+const InputGroup = ({ label, children, error }) => (
+  <div className="mb-4">
+    <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+    {children}
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
+
+// --- MAIN APPLICATION ---
+
+export default function EndoPlatform() {
+  const [activeRole, setActiveRole] = useState('student'); // 'student' | 'admin'
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // App State (Simulated Database)
+  const [cases, setCases] = useState(mockCases);
+  const [patients, setPatients] = useState(mockPatients);
+  const [sessions, setSessions] = useState([]);
+  const [canals, setCanals] = useState([]);
+
+  // --- VIEWS ---
+
+  const StudentDashboard = () => {
+    const myCases = cases.filter(c => c.primary_student_id === 'u1');
+    
+    return (
+      <div className="space-y-6">
+        <header className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Welcome, Dr. Sarah</h1>
+            <p className="text-slate-500">You have {myCases.filter(c => c.case_status === 'in_treatment').length} active cases.</p>
+          </div>
+          <Button variant="primary" icon={Plus} onClick={() => setCurrentView('new_case')}>New Case</Button>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="p-4 border-l-4 border-indigo-500">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-slate-500">Active Cases</p>
+                <h3 className="text-2xl font-bold">4</h3>
+              </div>
+              <Activity className="text-indigo-500 opacity-50" />
+            </div>
+          </Card>
+          <Card className="p-4 border-l-4 border-orange-500">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-slate-500">Pending Sign-offs</p>
+                <h3 className="text-2xl font-bold">2</h3>
+              </div>
+              <FileDigit className="text-orange-500 opacity-50" />
+            </div>
+          </Card>
+          <Card className="p-4 border-l-4 border-emerald-500">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-slate-500">Completed Reqs</p>
+                <h3 className="text-2xl font-bold">12/20</h3>
+              </div>
+              <CheckCircle className="text-emerald-500 opacity-50" />
+            </div>
+          </Card>
+        </div>
+
+        <section>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Recent Cases</h2>
+          <div className="grid gap-4">
+            {myCases.map(c => {
+              const patient = patients.find(p => p.patient_id === c.patient_id);
+              return (
+                <div 
+                  key={c.case_id} 
+                  onClick={() => { setSelectedCase(c); setCurrentView('case_detail'); }}
+                  className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow cursor-pointer flex flex-col md:flex-row justify-between md:items-center gap-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-700 border-2 border-slate-300">
+                      {c.tooth_number_fdi}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-900">{patient?.first_name} {patient?.last_name}</h3>
+                      <p className="text-sm text-slate-500">{c.tooth_type} • {c.planned_treatment_type.replace(/_/g, ' ')}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge color={c.case_status === 'in_treatment' ? 'blue' : 'green'}>
+                      {c.case_status.replace('_', ' ')}
+                    </Badge>
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    );
+  };
+
+  const AdminDashboard = () => {
+    const handleExport = () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+        schema_version: "2.0.0",
+        patients,
+        cases,
+        sessions
+      }, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "endo_platform_export.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    };
+
+    return (
+      <div className="space-y-6">
+        <header className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-slate-900">Faculty Admin Dashboard</h1>
+          <Button variant="secondary" icon={Download} onClick={handleExport}>Export Data</Button>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="p-4 bg-slate-800 text-white">
+            <p className="text-slate-400 text-sm">Total Cases</p>
+            <h3 className="text-3xl font-bold">{cases.length}</h3>
+          </Card>
+          <Card className="p-4">
+            <p className="text-slate-500 text-sm">Active Students</p>
+            <h3 className="text-3xl font-bold">24</h3>
+          </Card>
+          <Card className="p-4">
+            <p className="text-slate-500 text-sm">Pending Reviews</p>
+            <h3 className="text-3xl font-bold text-orange-600">8</h3>
+          </Card>
+          <Card className="p-4">
+            <p className="text-slate-500 text-sm">Success Rate</p>
+            <h3 className="text-3xl font-bold text-emerald-600">94%</h3>
+          </Card>
+        </div>
+
+        <Card className="p-6">
+          <h3 className="font-semibold mb-4">Case Distribution by Tooth Type</h3>
+          <div className="space-y-3">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>Molars</span>
+                <span className="font-medium">45%</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2">
+                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '45%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>Premolars</span>
+                <span className="font-medium">30%</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2">
+                <div className="bg-indigo-500 h-2 rounded-full" style={{ width: '30%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span>Anterior</span>
+                <span className="font-medium">25%</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2">
+                <div className="bg-teal-500 h-2 rounded-full" style={{ width: '25%' }}></div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
+  const CaseDetail = ({ endoCase }) => {
+    const patient = patients.find(p => p.patient_id === endoCase.patient_id);
+    const [activeTab, setActiveTab] = useState('info'); // info, canals, sessions, rx
+    
+    // Derived state for canals linked to this case
+    const caseCanals = canals.filter(c => c.case_id === endoCase.case_id);
+    const caseSessions = sessions.filter(s => s.case_id === endoCase.case_id);
+
+    return (
+      <div className="space-y-6 pb-20">
+        {/* Header */}
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" className="p-0" onClick={() => setCurrentView(activeRole === 'student' ? 'dashboard' : 'cases_list')}>
+            <ChevronDown className="rotate-90" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-slate-900">Tooth #{endoCase.tooth_number_fdi}</h1>
+            <p className="text-slate-500">{patient?.first_name} {patient?.last_name} • {endoCase.pulp_diagnosis}</p>
+          </div>
+          <Badge color={endoCase.case_status === 'open' ? 'green' : 'blue'}>{endoCase.case_status}</Badge>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2 border-b border-slate-200">
+          {['info', 'canals', 'sessions', 'rx'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap capitalize ${
+                activeTab === tab 
+                  ? 'bg-slate-900 text-white' 
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {tab === 'rx' ? 'Radiographs' : tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="min-h-[400px]">
+          {activeTab === 'info' && (
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="p-6">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-indigo-600" /> Patient History
+                </h3>
+                <dl className="grid grid-cols-1 gap-y-4 text-sm">
+                  <div>
+                    <dt className="text-slate-500">Medical Alerts</dt>
+                    <dd className="font-medium text-red-600">
+                      {patient.systemic_conditions.join(', ') || 'None'} 
+                      {patient.allergies.length > 0 && ` (Allergies: ${patient.allergies.join(', ')})`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500">Chief Complaint</dt>
+                    <dd className="font-medium">{endoCase.chief_complaint}</dd>
+                  </div>
+                </dl>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <Microscope className="w-5 h-5 text-indigo-600" /> Diagnosis
+                </h3>
+                <dl className="grid grid-cols-1 gap-y-4 text-sm">
+                  <div>
+                    <dt className="text-slate-500">Pulpal</dt>
+                    <dd className="font-medium">{endoCase.pulp_diagnosis}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500">Periapical</dt>
+                    <dd className="font-medium">{endoCase.periapical_diagnosis}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500">Restorability</dt>
+                    <dd className="font-medium">Good (Pre-op Assessment)</dd>
+                  </div>
+                </dl>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'canals' && (
+            <div className="space-y-4">
+               <div className="flex justify-between items-center">
+                 <h3 className="font-semibold text-lg">Canal Morphology</h3>
+                 <Button variant="secondary" icon={Plus} size="sm" onClick={() => {
+                   const newCanal = { canal_id: generateId(), case_id: endoCase.case_id, label: 'MB1', working_length_mm: 0 };
+                   setCanals([...canals, newCanal]);
+                 }}>Add Canal</Button>
+               </div>
+               
+               {caseCanals.length === 0 ? (
+                 <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                   <p className="text-slate-500">No canals recorded yet.</p>
+                 </div>
+               ) : (
+                 <div className="grid gap-4 md:grid-cols-2">
+                   {caseCanals.map(canal => (
+                     <Card key={canal.canal_id} className="p-4">
+                       <div className="flex justify-between items-start mb-2">
+                         <span className="font-bold text-lg bg-slate-100 px-2 py-1 rounded">{canal.label}</span>
+                         <span className="text-xs text-slate-400">ID: {canal.canal_id}</span>
+                       </div>
+                       <div className="grid grid-cols-2 gap-4 text-sm">
+                         <div>
+                           <label className="block text-slate-500 text-xs">Working Length (mm)</label>
+                           <input 
+                              type="number" 
+                              className="w-full mt-1 border-b border-slate-300 focus:border-indigo-500 focus:outline-none bg-transparent"
+                              defaultValue={canal.working_length_mm}
+                              placeholder="--"
+                           />
+                         </div>
+                         <div>
+                           <label className="block text-slate-500 text-xs">Ref Point</label>
+                           <input 
+                              type="text" 
+                              className="w-full mt-1 border-b border-slate-300 focus:border-indigo-500 focus:outline-none bg-transparent"
+                              placeholder="Cusp tip"
+                           />
+                         </div>
+                         <div>
+                           <label className="block text-slate-500 text-xs">MAF Size</label>
+                           <input 
+                              type="number" 
+                              className="w-full mt-1 border-b border-slate-300 focus:border-indigo-500 focus:outline-none bg-transparent"
+                              placeholder="30"
+                           />
+                         </div>
+                         <div>
+                            <label className="block text-slate-500 text-xs">Taper</label>
+                            <select className="w-full mt-1 border-b border-slate-300 bg-transparent text-sm">
+                              <option>.02</option>
+                              <option>.04</option>
+                              <option>.06</option>
+                            </select>
+                         </div>
+                       </div>
+                     </Card>
+                   ))}
+                 </div>
+               )}
+            </div>
+          )}
+
+          {activeTab === 'sessions' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-lg">Treatment History</h3>
+                <Button variant="primary" icon={Plus} onClick={() => setCurrentView('new_session')}>New Session</Button>
+              </div>
+              
+              <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+                {caseSessions.map(session => (
+                   <div key={session.session_id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-300 group-[.is-active]:bg-indigo-500 text-slate-500 group-[.is-active]:text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
+                        <Calendar className="w-5 h-5" />
+                      </div>
+                      <Card className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4">
+                         <div className="flex justify-between items-start mb-1">
+                           <time className="font-caveat font-medium text-indigo-500">{new Date(session.date).toLocaleDateString()}</time>
+                           <Badge color="gray">{session.session_type}</Badge>
+                         </div>
+                         <div className="text-slate-700 text-sm mb-2 font-medium">
+                           {session.procedures_performed.map(p => p.description).join(', ')}
+                         </div>
+                         {session.free_text_notes.intra_op_notes && (
+                            <p className="text-slate-500 text-xs line-clamp-2">"{session.free_text_notes.intra_op_notes}"</p>
+                         )}
+                      </Card>
+                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'rx' && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1,2].map(i => (
+                <div key={i} className="aspect-square bg-slate-900 rounded-lg flex items-center justify-center relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-xs">View</span>
+                  </div>
+                  <FileDigit className="text-slate-600 w-12 h-12" />
+                  <span className="absolute bottom-2 left-2 text-white text-xs bg-black/40 px-1 rounded">Pre-op PA</span>
+                </div>
+              ))}
+              <button className="aspect-square border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:border-indigo-500 hover:text-indigo-500 transition-colors">
+                <Camera className="w-8 h-8 mb-2" />
+                <span className="text-xs font-medium">Upload Rx</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const SessionForm = () => {
+    // A simplified wizard for adding a session
+    const [step, setStep] = useState(1);
+    
+    return (
+      <div className="max-w-2xl mx-auto pb-20">
+        <div className="mb-6 flex items-center gap-2">
+          <Button variant="ghost" onClick={() => setCurrentView('case_detail')} className="p-0"><ChevronRight className="rotate-180" /></Button>
+          <h1 className="text-xl font-bold">New Treatment Session</h1>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+          <div className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${(step/3)*100}%` }}></div>
+        </div>
+
+        <Card className="p-6">
+          {step === 1 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold mb-4">Preparation</h2>
+              <InputGroup label="Session Type">
+                <select className="w-full p-2 border rounded-lg bg-white">
+                  <option value="treatment">Treatment</option>
+                  <option value="emergency">Emergency</option>
+                  <option value="exam">Examination</option>
+                </select>
+              </InputGroup>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <InputGroup label="Anesthesia Agent">
+                  <select className="w-full p-2 border rounded-lg bg-white">
+                     <option>Lidocaine 2% w/ Epi 1:100k</option>
+                     <option>Articaine 4% w/ Epi 1:100k</option>
+                     <option>Mepivacaine 3%</option>
+                  </select>
+                </InputGroup>
+                <InputGroup label="Volume (cartridges)">
+                   <input type="number" step="0.5" className="w-full p-2 border rounded-lg" defaultValue="1" />
+                </InputGroup>
+              </div>
+
+              <div className="flex items-center gap-2 py-2">
+                <input type="checkbox" id="rd" className="w-5 h-5 text-indigo-600 rounded" defaultChecked />
+                <label htmlFor="rd" className="text-sm font-medium">Rubber Dam Placed (Mandatory)</label>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold mb-4">Procedures & Instrumentation</h2>
+              <div className="border border-slate-200 rounded-lg p-3 space-y-2">
+                 <label className="text-sm font-medium">Procedures Performed</label>
+                 {['Access Opening', 'Glide Path', 'Shaping', 'Irrigation Activation'].map(proc => (
+                   <label key={proc} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer">
+                      <input type="checkbox" className="rounded text-indigo-600" />
+                      <span className="text-sm">{proc}</span>
+                   </label>
+                 ))}
+              </div>
+              
+              <InputGroup label="Instrumentation System">
+                 <select className="w-full p-2 border rounded-lg bg-white">
+                   <option>ProTaper Gold</option>
+                   <option>WaveOne Gold</option>
+                   <option>Hand Files (SS)</option>
+                 </select>
+              </InputGroup>
+
+              <InputGroup label="Intra-op Findings">
+                <textarea className="w-full p-2 border rounded-lg h-24" placeholder="e.g., Calcified canal in MB2..."></textarea>
+              </InputGroup>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold mb-4">Post-op & Sign-off</h2>
+              <InputGroup label="Post-op Instructions">
+                <textarea className="w-full p-2 border rounded-lg h-20" defaultValue="Avoid chewing on treated side. Take ibuprofen 400mg q6h prn pain."></textarea>
+              </InputGroup>
+              
+              <InputGroup label="Request Supervisor Sign-off">
+                <select className="w-full p-2 border rounded-lg bg-white">
+                  <option>Dr. John Faculty</option>
+                  <option>Dr. Emily Supervisor</option>
+                </select>
+              </InputGroup>
+
+              <div className="bg-orange-50 p-3 rounded-lg flex items-start gap-2 text-sm text-orange-800">
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <p>Ensure all working lengths are entered in the "Canals" tab before submitting this session.</p>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-8 flex justify-between">
+            <Button variant="secondary" onClick={() => step > 1 && setStep(step - 1)} disabled={step === 1}>Back</Button>
+            {step < 3 ? (
+               <Button onClick={() => setStep(step + 1)}>Next</Button>
+            ) : (
+               <Button icon={Save} onClick={() => {
+                 // Mock Save
+                 const newSession = {
+                    session_id: generateId(),
+                    case_id: selectedCase.case_id,
+                    date: now,
+                    session_type: 'treatment',
+                    procedures_performed: [{ description: 'Access & Shaping' }],
+                    free_text_notes: { intra_op_notes: 'Smooth procedure.' }
+                 };
+                 setSessions([newSession, ...sessions]);
+                 setCurrentView('case_detail');
+               }}>Submit Session</Button>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
+  // --- LAYOUT ---
+
+  const Sidebar = () => (
+    <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="p-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+           <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold">R</div>
+           <span className="text-xl font-bold tracking-tight">Rasadent</span>
+        </div>
+        <button onClick={() => setMobileMenuOpen(false)} className="lg:hidden text-slate-400"><X /></button>
+      </div>
+      
+      <nav className="px-4 space-y-2 mt-4">
+        <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Menu</p>
+        <SidebarItem icon={Activity} label="Dashboard" active={currentView === 'dashboard'} onClick={() => setCurrentView('dashboard')} />
+        <SidebarItem icon={FileText} label="All Cases" active={currentView === 'cases_list'} onClick={() => setCurrentView('cases_list')} />
+        <SidebarItem icon={Calendar} label="Schedule" />
+        <SidebarItem icon={Users} label="Patients" />
+      </nav>
+
+      <div className="absolute bottom-0 w-full p-4 border-t border-slate-800">
+        <div className="flex items-center gap-3 mb-4 px-2">
+          <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm font-medium">
+             {activeRole === 'student' ? 'S' : 'A'}
+          </div>
+          <div>
+            <p className="text-sm font-medium">{activeRole === 'student' ? 'Dr. Student' : 'Admin User'}</p>
+            <p className="text-xs text-slate-500 capitalize">{activeRole}</p>
+          </div>
+        </div>
+        <button 
+           onClick={() => {
+             setActiveRole(activeRole === 'student' ? 'admin' : 'student');
+             setCurrentView('dashboard');
+             setMobileMenuOpen(false);
+           }}
+           className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Switch to {activeRole === 'student' ? 'Admin' : 'Student'}
+        </button>
+      </div>
+    </div>
+  );
+
+  const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
+    <button 
+      onClick={() => { onClick && onClick(); setMobileMenuOpen(false); }}
+      className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+        active ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+      }`}
+    >
+      <Icon className="w-5 h-5 mr-3" />
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      <Sidebar />
+      
+      {/* Mobile Header */}
+      <div className="lg:hidden flex items-center justify-between p-4 bg-white shadow-sm sticky top-0 z-40">
+        <button onClick={() => setMobileMenuOpen(true)} className="text-slate-600"><Menu /></button>
+        <span className="font-bold text-lg">Rasadent Endo</span>
+        <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-xs">
+          {activeRole === 'student' ? 'DS' : 'AD'}
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <main className="lg:ml-64 p-4 lg:p-8 max-w-7xl mx-auto">
+        {currentView === 'dashboard' && (
+          activeRole === 'student' ? <StudentDashboard /> : <AdminDashboard />
+        )}
+        
+        {currentView === 'case_detail' && selectedCase && (
+          <CaseDetail endoCase={selectedCase} />
+        )}
+
+        {currentView === 'new_session' && selectedCase && (
+          <SessionForm />
+        )}
+        
+        {currentView === 'cases_list' && (
+          <div className="space-y-4">
+             <header className="flex justify-between items-center mb-6">
+               <h1 className="text-2xl font-bold">All Cases</h1>
+               <div className="flex gap-2">
+                 <Button variant="secondary" icon={Filter} className="hidden md:flex">Filter</Button>
+                 <Button variant="primary" icon={Plus}>New Case</Button>
+               </div>
+             </header>
+             <div className="bg-white rounded-xl shadow overflow-hidden">
+               <div className="overflow-x-auto">
+                 <table className="min-w-full divide-y divide-slate-200">
+                   <thead className="bg-slate-50">
+                     <tr>
+                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Patient</th>
+                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Tooth</th>
+                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Diagnosis</th>
+                       <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                       <th className="relative px-6 py-3"><span className="sr-only">Edit</span></th>
+                     </tr>
+                   </thead>
+                   <tbody className="bg-white divide-y divide-slate-200">
+                     {cases.map(c => {
+                       const p = patients.find(pat => pat.patient_id === c.patient_id);
+                       return (
+                         <tr key={c.case_id} onClick={() => { setSelectedCase(c); setCurrentView('case_detail'); }} className="hover:bg-slate-50 cursor-pointer">
+                           <td className="px-6 py-4 whitespace-nowrap">
+                             <div className="font-medium text-slate-900">{p?.last_name}, {p?.first_name}</div>
+                             <div className="text-slate-500 text-xs">{p?.patient_id}</div>
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap">
+                             <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-slate-100 font-bold text-slate-700">#{c.tooth_number_fdi}</span>
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                             {c.pulp_diagnosis}
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap">
+                             <Badge color={c.case_status === 'in_treatment' ? 'blue' : 'green'}>{c.case_status}</Badge>
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                             <ChevronRight className="text-slate-400 w-5 h-5 ml-auto" />
+                           </td>
+                         </tr>
+                       );
+                     })}
+                   </tbody>
+                 </table>
+               </div>
+             </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
