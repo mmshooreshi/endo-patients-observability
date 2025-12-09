@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rasadent EndoPlatform Prototype</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Stepper Logic */
+        .step-content { display: none; }
+        .step-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Tooth Chart Simple Visuals */
+        .tooth-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+        .tooth-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; cursor: pointer; border: 1px solid #e5e7eb; border-radius: 4px; }
+        .tooth-cell.selected { background-color: #3b82f6; color: white; border-color: #2563eb; }
+
+        /* Timeline Connector */
+        .timeline-line {
+            position: absolute; left: 1.25rem; top: 2.5rem; bottom: -1rem; width: 2px; background-color: #e5e7eb;
+        }
+        .last-item .timeline-line { display: none; }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 z-20 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">R</div>
+            <h1 class="font-semibold text-lg hidden sm:block">EndoPlatform</h1>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <!-- Role Switcher -->
+            <div class="flex bg-gray-100 rounded-lg p-1">
+                <button onclick="app.switchRole('student')" id="btn-role-student" class="px-3 py-1 text-sm rounded-md transition-colors font-medium">Student</button>
+                <button onclick="app.switchRole('admin')" id="btn-role-admin" class="px-3 py-1 text-sm rounded-md transition-colors font-medium text-gray-500">Admin</button>
+            </div>
+            
+            <div class="relative group cursor-pointer">
+                <img src="https://ui-avatars.com/api/?name=User&background=random" class="w-8 h-8 rounded-full">
+                <div class="absolute right-0 top-10 bg-white border shadow-lg rounded p-2 w-48 hidden group-hover:block">
+                    <div class="text-xs text-gray-500 uppercase px-2 py-1">Current User</div>
+                    <div id="user-display-name" class="font-medium px-2">Loading...</div>
+                    <div id="user-role-badge" class="text-xs px-2 text-blue-600">Student</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar (Desktop) / Bottom Nav (Mobile) logic handled via conditional rendering classes -->
+        <aside class="hidden md:flex flex-col w-64 bg-white border-r border-gray-200 h-full">
+            <nav class="flex-1 p-4 space-y-2" id="desktop-nav">
+                <!-- Injected via JS -->
+            </nav>
+            <div class="p-4 border-t text-xs text-gray-400">
+                v2.0.0 (Schema Compliant)
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto relative" id="main-content">
+            <!-- Dynamic View Container -->
+            <div id="view-container" class="p-4 md:p-8 max-w-7xl mx-auto pb-24 md:pb-8">
+                <!-- Content injected here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around py-3 z-30" id="mobile-nav">
+        <!-- Injected via JS -->
+    </nav>
+
+    <!-- Global Modals -->
+    <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" id="modal-content">
+            <!-- Modal Content -->
+        </div>
+    </div>
+
+<script>
+/**
+ * ------------------------------------------------------------------
+ * SCHEMA & MOCK DATA GENERATION
+ * ------------------------------------------------------------------
+ */
+
+const SCHEMA_CONFIG = {
+    tooth_arch: ['maxillary', 'mandibular'],
+    tooth_type: ['anterior', 'premolar', 'molar'],
+    case_status: ['open', 'in_treatment', 'completed', 'abandoned', 'failed'],
+    session_type: ['exam', 'diagnosis', 'treatment', 'follow_up', 'emergency'],
+    pulp_diagnosis: ['Normal Pulp', 'Reversible Pulpitis', 'Symptomatic Irreversible Pulpitis', 'Asymptomatic Irreversible Pulpitis', 'Pulp Necrosis', 'Previously Treated', 'Previously Initiated Therapy'],
+    periapical_diagnosis: ['Normal Apical Tissues', 'Symptomatic Apical Periodontitis', 'Asymptomatic Apical Periodontitis', 'Acute Apical Abscess', 'Chronic Apical Abscess', 'Condensing Osteitis'],
+    treatment_indication: ['Caries', 'Trauma', 'Prosthetic', 'Perio-Endo', 'Resorption'],
+    roles: ['student', 'faculty', 'admin']
+};
+
+// Utils
+const uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+});
+
+const randItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const randDate = (start, end) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime())).toISOString();
+
+// Mock Data Store
+const db = {
+    users: [],
+    patients: [],
+    cases: [],
+    sessions: [],
+    canals: [],
+    templates: [],
+    signoffs: []
+};
+
+function initMockData() {
+    // 1. Users
+    db.users.push({ user_id: 'u1', name: 'Dr. House', email: 'house@rasadent.com', role: 'faculty', active: true });
+    db.users.push({ user_id: 'u2', name: 'Alex Student', email: 'alex@rasadent.com', role: 'student', active: true });
+    db.users.push({ user_id: 'u3', name: 'Admin Alice', email: 'admin@rasadent.com', role: 'admin', active: true });
+
+    // 2. Templates
+    db.templates.push({
+        template_id: 't1', name: 'Standard RCT Access', scope: 'session', 
+        default_free_text_blocks: { intra_op_notes: "Access achieved. All canals located. WL determined via EAL." }
+    });
+
+    // 3. Patients (20)
+    for(let i=0; i<20; i++) {
+        const pid = uuid();
+        db.patients.push({
+            patient_id: pid,
+            first_name: ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emily'][i%6],
+            last_name: ['Doe', 'Smith', 'Johnson', 'Brown', 'Davis', 'Wilson'][i%6],
+            date_of_birth: '1980-01-01',
+            age_at_first_visit_years: randInt(20, 70),
+            sex: randItem(['male', 'female']),
+            systemic_conditions: Math.random() > 0.7 ? ['Hypertension'] : [],
+            allergies: Math.random() > 0.8 ? ['Penicillin'] : [],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        });
+
+        // 4. Cases (1-2 per patient)
+        const numCases = randInt(1, 2);
+        for(let j=0; j<numCases; j++) {
+            const cid = uuid();
+            const toothNum = randInt(11, 48).toString();
+            const status = randItem(SCHEMA_CONFIG.case_status);
+            
+            const newCase = {
+                case_id: cid,
+                patient_id: pid,
+                primary_student_id: 'u2',
+                clinic_site: 'Main Clinic A',
+                tooth_number_fdi: toothNum,
+                tooth_arch: parseInt(toothNum) < 30 ? 'maxillary' : 'mandibular',
+                tooth_type: randItem(SCHEMA_CONFIG.tooth_type),
+                is_retreatment: Math.random() > 0.8,
+                is_emergency_case: Math.random() > 0.9,
+                chief_complaint: "Pain on biting and cold sensitivity",
+                symptom_duration_days: randInt(1, 14),
+                pulp_diagnosis: randItem(SCHEMA_CONFIG.pulp_diagnosis),
+                periapical_diagnosis: randItem(SCHEMA_CONFIG.periapical_diagnosis),
+                treatment_indication: randItem(SCHEMA_CONFIG.treatment_indication),
+                case_status: status,
+                opened_at: randDate(new Date(2024, 0, 1), new Date()),
+                completed_at: status === 'completed' ? new Date().toISOString() : null,
+                tags: Math.random() > 0.5 ? ['Complex Anatomy'] : []
+            };
+            db.cases.push(newCase);
+
+            // 5. Canals
+            const numCanals = randInt(1, 4);
+            for(let k=0; k<numCanals; k++) {
+                db.canals.push({
+                    canal_id: uuid(),
+                    case_id: cid,
+                    label: ['MB', 'MB2', 'DB', 'P', 'D', 'M'][k],
+                    working_length_mm: randInt(18, 24),
+                    instrumentation_system: 'ProTaper Gold',
+                    obturation_technique: 'Warm Vertical',
+                    obturation_materials: ['Gutta Percha', 'AH Plus']
+                });
+            }
+
+            // 6. Sessions
+            const numSessions = randInt(1, 3);
+            for(let s=0; s<numSessions; s++) {
+                db.sessions.push({
+                    session_id: uuid(),
+                    case_id: cid,
+                    session_number: s+1,
+                    date: randDate(new Date(newCase.opened_at), new Date()),
+                    student_id: 'u2',
+                    session_type: s===0 ? 'diagnosis' : 'treatment',
+                    session_status: 'approved',
+                    procedures_performed: [],
+                    free_text_notes: { intra_op_notes: "Routine procedure." }
+                });
+            }
+        }
+    }
+}
+
+/**
+ * ------------------------------------------------------------------
+ * APPLICATION STATE & CONTROLLER
+ * ------------------------------------------------------------------
+ */
+
+const app = {
+    state: {
+        currentRole: 'student', // 'student' | 'admin'
+        currentUser: null,
+        currentView: 'dashboard',
+        activeCaseId: null,
+        activeSessionId: null,
+        filters: { search: '' }
+    },
+
+    init() {
+        initMockData();
+        this.state.currentUser = db.users.find(u => u.role === 'student');
+        this.updateUI();
+    },
+
+    switchRole(role) {
+        this.state.currentRole = role;
+        this.state.currentUser = role === 'student' 
+            ? db.users.find(u => u.role === 'student') 
+            : db.users.find(u => u.role === 'admin');
+        
+        // Reset View
+        this.state.currentView = 'dashboard';
+        this.state.activeCaseId = null;
+        this.updateUI();
+    },
+
+    updateUI() {
+        // Update Header
+        const btnStudent = document.getElementById('btn-role-student');
+        const btnAdmin = document.getElementById('btn-role-admin');
+        const userName = document.getElementById('user-display-name');
+        const userBadge = document.getElementById('user-role-badge');
+
+        if(this.state.currentRole === 'student') {
+            btnStudent.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            btnStudent.classList.remove('text-gray-500');
+            btnAdmin.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            btnAdmin.classList.add('text-gray-500');
+        } else {
+            btnAdmin.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            btnAdmin.classList.remove('text-gray-500');
+            btnStudent.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            btnStudent.classList.add('text-gray-500');
+        }
+
+        userName.textContent = this.state.currentUser.name;
+        userBadge.textContent = this.state.currentUser.role.toUpperCase();
+
+        // Render Nav
+        this.renderNav();
+
+        // Render Main View
+        const container = document.getElementById('view-container');
+        container.innerHTML = '';
+        
+        switch(this.state.currentView) {
+            case 'dashboard':
+                this.state.currentRole === 'student' ? renderStudentDashboard(container) : renderAdminDashboard(container);
+                break;
+            case 'cases':
+                renderCaseList(container);
+                break;
+            case 'case_detail':
+                renderCaseDetail(container, this.state.activeCaseId);
+                break;
+            case 'session_edit':
+                renderSessionEditor(container, this.state.activeSessionId);
+                break;
+            case 'analytics':
+                renderAnalytics(container);
+                break;
+            case 'similarity':
+                renderSimilarity(container);
+                break;
+        }
+    },
+
+    navigate(view, params = {}) {
+        this.state.currentView = view;
+        if(params.caseId) this.state.activeCaseId = params.caseId;
+        if(params.sessionId) this.state.activeSessionId = params.sessionId;
+        this.updateUI();
+        window.scrollTo(0,0);
+    },
+
+    renderNav() {
+        const desktopNav = document.getElementById('desktop-nav');
+        const mobileNav = document.getElementById('mobile-nav');
+        
+        let items = [];
+        if(this.state.currentRole === 'student') {
+            items = [
+                { id: 'dashboard', icon: 'fa-home', label: 'Home' },
+                { id: 'cases', icon: 'fa-tooth', label: 'My Cases' },
+                { id: 'profile', icon: 'fa-user-graduate', label: 'Profile' } // Placeholder
+            ];
+        } else {
+            items = [
+                { id: 'dashboard', icon: 'fa-chart-pie', label: 'Overview' },
+                { id: 'cases', icon: 'fa-list', label: 'All Cases' },
+                { id: 'similarity', icon: 'fa-equals', label: 'Similarity' },
+                { id: 'analytics', icon: 'fa-chart-line', label: 'Analytics' }
+            ];
+        }
+
+        const navHTML = items.map(item => `
+            <button onclick="app.navigate('${item.id}')" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${this.state.currentView === item.id ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}">
+                <i class="fa-solid ${item.icon} w-5 text-center"></i>
+                <span class="text-sm font-medium">${item.label}</span>
+            </button>
+        `).join('');
+        
+        const mobileHTML = items.map(item => `
+            <button onclick="app.navigate('${item.id}')" class="flex flex-col items-center gap-1 p-2 ${this.state.currentView === item.id ? 'text-blue-600' : 'text-gray-400'}">
+                <i class="fa-solid ${item.icon} text-lg"></i>
+                <span class="text-[10px] font-medium">${item.label}</span>
+            </button>
+        `).join('');
+
+        desktopNav.innerHTML = navHTML;
+        mobileNav.innerHTML = mobileHTML;
+    }
+};
+
+/**
+ * ------------------------------------------------------------------
+ * VIEW RENDERERS
+ * ------------------------------------------------------------------
+ */
+
+// --- DASHBOARDS ---
+
+function renderStudentDashboard(target) {
+    const activeCases = db.cases.filter(c => c.primary_student_id === app.state.currentUser.user_id && c.case_status !== 'completed');
+    const recentSessions = db.sessions.filter(s => s.student_id === app.state.currentUser.user_id).sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
+
+    target.innerHTML = `
+        <div class="space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold">Hello, ${app.state.currentUser.name.split(' ')[0]}</h2>
+                <button onclick="createNewCase()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm shadow flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> New Case
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-gray-500 text-xs mb-1">Active Cases</div>
+                    <div class="text-2xl font-bold text-gray-800">${activeCases.length}</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-gray-500 text-xs mb-1">Completed</div>
+                    <div class="text-2xl font-bold text-green-600">${db.cases.filter(c => c.primary_student_id === app.state.currentUser.user_id && c.case_status === 'completed').length}</div>
+                </div>
+            </div>
+
+            <!-- Active Cases List -->
+            <div>
+                <h3 class="text-lg font-semibold mb-3">Active Treatment Plans</h3>
+                <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    ${activeCases.map(c => renderCaseCard(c)).join('')}
+                </div>
+            </div>
+
+             <!-- Recent Activity -->
+             <div>
+                <h3 class="text-lg font-semibold mb-3">Recent Sessions</h3>
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    ${recentSessions.map(s => {
+                        const c = db.cases.find(x => x.case_id === s.case_id);
+                        const p = db.patients.find(x => x.patient_id === c.patient_id);
+                        return `
+                        <div class="p-4 border-b last:border-0 hover:bg-gray-50 cursor-pointer flex justify-between items-center" onclick="app.navigate('case_detail', {caseId: '${c.case_id}'})">
+                            <div>
+                                <div class="font-medium text-sm">Tooth #${c.tooth_number_fdi} - ${s.session_type}</div>
+                                <div class="text-xs text-gray-500">${p.last_name}, ${p.first_name} • ${new Date(s.date).toLocaleDateString()}</div>
+                            </div>
+                            <div class="px-2 py-1 rounded bg-green-100 text-green-700 text-xs">${s.session_status}</div>
+                        </div>`
+                    }).join('')}
+                </div>
+             </div>
+        </div>
+    `;
+}
+
+function renderAdminDashboard(target) {
+    target.innerHTML = `
+        <div class="space-y-6">
+            <h2 class="text-2xl font-bold">Clinical Administration</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-gray-500 mb-2">Total Cases</div>
+                    <div class="text-3xl font-bold">${db.cases.length}</div>
+                    <div class="text-sm text-green-600 mt-2">+5 this week</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-gray-500 mb-2">Pending Sign-offs</div>
+                    <div class="text-3xl font-bold text-orange-500">12</div>
+                    <div class="text-sm text-gray-400 mt-2">Needs attention</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-gray-500 mb-2">Avg. Grade</div>
+                    <div class="text-3xl font-bold text-blue-600">88%</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-4">
+                <button onclick="exportData('json')" class="bg-gray-800 text-white px-4 py-2 rounded shadow hover:bg-gray-700">
+                    <i class="fa-solid fa-download mr-2"></i> Export All JSON
+                </button>
+                 <button onclick="exportData('csv')" class="bg-gray-800 text-white px-4 py-2 rounded shadow hover:bg-gray-700">
+                    <i class="fa-solid fa-table mr-2"></i> Export Cases CSV
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// --- CASE LIST & DETAIL ---
+
+function renderCaseList(target) {
+    const list = app.state.currentRole === 'student' 
+        ? db.cases.filter(c => c.primary_student_id === app.state.currentUser.user_id)
+        : db.cases;
+
+    target.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold">Cases Directory</h2>
+                <input type="text" placeholder="Search patient, tooth..." class="border rounded-lg px-3 py-2 text-sm w-48 md:w-64" onkeyup="filterCases(this.value)">
+            </div>
+            <div id="case-grid" class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                ${list.map(c => renderCaseCard(c)).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderCaseCard(c) {
+    const p = db.patients.find(x => x.patient_id === c.patient_id);
+    const statusColor = c.case_status === 'completed' ? 'bg-green-100 text-green-800' : 
+                        c.case_status === 'in_treatment' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
+    
+    return `
+        <div class="bg-white p-4 rounded-xl shadow-sm border hover:shadow-md transition-shadow cursor-pointer relative" onclick="app.navigate('case_detail', {caseId: '${c.case_id}'})">
+            ${c.is_emergency_case ? '<div class="absolute top-2 right-2 text-red-500"><i class="fa-solid fa-bolt"></i></div>' : ''}
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <div class="font-bold text-lg">Tooth #${c.tooth_number_fdi}</div>
+                    <div class="text-sm text-gray-500">${c.tooth_type}</div>
+                </div>
+                <span class="px-2 py-1 rounded text-xs font-medium ${statusColor}">${c.case_status.replace('_', ' ')}</span>
+            </div>
+            <div class="border-t pt-2 mt-2">
+                <div class="font-medium">${p.last_name}, ${p.first_name}</div>
+                <div class="text-xs text-gray-500">Dx: ${c.pulp_diagnosis}</div>
+            </div>
+        </div>
+    `;
+}
+
+function renderCaseDetail(target, caseId) {
+    const c = db.cases.find(x => x.case_id === caseId);
+    const p = db.patients.find(x => x.patient_id === c.patient_id);
+    const sessions = db.sessions.filter(s => s.case_id === caseId).sort((a,b) => new Date(a.date) - new Date(b.date));
+    const canals = db.canals.filter(can => can.case_id === caseId);
+
+    target.innerHTML = `
+        <div class="flex flex-col gap-6">
+            <!-- Header -->
+            <div class="flex items-center gap-4">
+                <button onclick="app.navigate('cases')" class="p-2 rounded hover:bg-gray-200"><i class="fa-solid fa-arrow-left"></i></button>
+                <div>
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        Tooth #${c.tooth_number_fdi} 
+                        <span class="text-sm font-normal text-gray-500">(${c.tooth_arch})</span>
+                    </h2>
+                    <div class="text-sm text-gray-600">${p.last_name}, ${p.first_name} • ${p.age_at_first_visit_years}yo ${p.sex}</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column: Details & Canals -->
+                <div class="lg:col-span-2 space-y-6">
+                    
+                    <!-- Patient & Diagnosis Card -->
+                    <div class="bg-white rounded-xl shadow-sm border p-4">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="block text-gray-400 text-xs uppercase">Pulp Dx</span>
+                                <span class="font-medium text-red-600">${c.pulp_diagnosis}</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-400 text-xs uppercase">Periapical Dx</span>
+                                <span class="font-medium">${c.periapical_diagnosis}</span>
+                            </div>
+                            <div class="col-span-2">
+                                <span class="block text-gray-400 text-xs uppercase">Medical Alerts</span>
+                                <div class="flex gap-2 mt-1">
+                                    ${p.systemic_conditions.length ? p.systemic_conditions.map(sc => `<span class="bg-red-50 text-red-700 px-2 py-0.5 rounded text-xs border border-red-100">${sc}</span>`).join('') : '<span class="text-gray-400 italic">None</span>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canal Detail Table -->
+                    <div class="bg-white rounded-xl shadow-sm border p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-sm uppercase text-gray-500">Canal Configuration</h3>
+                            <button class="text-blue-600 text-xs font-bold">+ Add Canal</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs text-gray-400 border-b">
+                                    <tr>
+                                        <th class="py-2">Label</th>
+                                        <th>WL (mm)</th>
+                                        <th>Ref</th>
+                                        <th>Size</th>
+                                        <th>Obturation</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${canals.map(can => `
+                                    <tr class="border-b last:border-0">
+                                        <td class="py-2 font-bold">${can.label}</td>
+                                        <td>${can.working_length_mm || '-'}</td>
+                                        <td>Apex Loc</td>
+                                        <td>${can.apical_size_final_file || '-'}</td>
+                                        <td>${can.obturation_materials[0] || '-'}</td>
+                                    </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Action Bar -->
+                    <div class="flex gap-2">
+                        <button onclick="startNewSession('${caseId}')" class="flex-1 bg-blue-600 text-white py-3 rounded-xl shadow font-semibold hover:bg-blue-700">
+                            Start New Session
+                        </button>
+                        <button class="flex-1 bg-white text-gray-700 border border-gray-300 py-3 rounded-xl shadow-sm font-semibold hover:bg-gray-50">
+                            <i class="fa-solid fa-camera"></i> Radiographs
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Right Column: Timeline -->
+                <div class="lg:col-span-1">
+                    <h3 class="font-bold text-gray-700 mb-4">Treatment History</h3>
+                    <div class="space-y-0 relative pl-2">
+                        ${sessions.map((s, idx) => `
+                        <div class="relative pl-8 pb-8 ${idx === sessions.length-1 ? 'last-item' : ''}">
+                            <div class="timeline-line"></div>
+                            <div class="absolute left-0 top-1 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm z-10">
+                                ${s.session_number}
+                            </div>
+                            <div class="bg-white p-3 rounded-lg border shadow-sm cursor-pointer hover:border-blue-300 transition-colors" onclick="app.navigate('session_edit', {sessionId: '${s.session_id}'})">
+                                <div class="flex justify-between mb-1">
+                                    <span class="font-bold text-sm capitalize">${s.session_type.replace('_', ' ')}</span>
+                                    <span class="text-xs text-gray-400">${new Date(s.date).toLocaleDateString()}</span>
+                                </div>
+                                <p class="text-xs text-gray-600 line-clamp-2">${s.free_text_notes.intra_op_notes || s.free_text_notes.pre_op_notes || 'No notes.'}</p>
+                                ${s.session_status === 'approved' ? '<div class="mt-2 text-[10px] text-green-600 font-bold uppercase"><i class="fa-solid fa-check"></i> Faculty Signed</div>' : '<div class="mt-2 text-[10px] text-orange-500 font-bold uppercase"><i class="fa-solid fa-clock"></i> Pending Review</div>'}
+                            </div>
+                        </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// --- SESSION EDITOR (COMPLEX) ---
+
+function renderSessionEditor(target, sessionId) {
+    const s = db.sessions.find(x => x.session_id === sessionId);
+    if(!s) return; // Error handling
+    const c = db.cases.find(x => x.case_id === s.case_id);
+
+    target.innerHTML = `
+        <div class="h-full flex flex-col">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-4">
+                <button onclick="app.navigate('case_detail', {caseId: '${s.case_id}'})" class="text-gray-500 hover:text-gray-800"><i class="fa-solid fa-times"></i> Cancel</button>
+                <div class="text-center">
+                    <h3 class="font-bold">Session #${s.session_number}</h3>
+                    <div class="text-xs text-gray-500">${new Date(s.date).toDateString()}</div>
+                </div>
+                <button onclick="saveSession('${sessionId}')" class="text-blue-600 font-bold">Save</button>
+            </div>
+
+            <!-- Stepper Nav -->
+            <div class="flex justify-between mb-6 border-b pb-2">
+                <button onclick="switchStep(1)" class="step-btn active text-blue-600 font-medium text-sm border-b-2 border-blue-600 pb-2" data-step="1">Pre-Op</button>
+                <button onclick="switchStep(2)" class="step-btn text-gray-500 font-medium text-sm pb-2" data-step="2">Procedure</button>
+                <button onclick="switchStep(3)" class="step-btn text-gray-500 font-medium text-sm pb-2" data-step="3">Post-Op</button>
+                <button onclick="switchStep(4)" class="step-btn text-gray-500 font-medium text-sm pb-2" data-step="4">Sign-off</button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 overflow-y-auto">
+                
+                <!-- STEP 1: Pre-Op -->
+                <div id="step-1" class="step-content active space-y-4">
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Pre-op Pain Score (0-10)</label>
+                        <input type="range" min="0" max="10" value="${s.pre_op_status?.pain_score || 0}" class="w-full accent-blue-600" oninput="document.getElementById('pain-val').innerText = this.value">
+                        <div class="text-center font-bold text-lg" id="pain-val">${s.pre_op_status?.pain_score || 0}</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Anesthesia</label>
+                        <select class="w-full border rounded-lg p-2 bg-white">
+                            <option>Lidocaine 2% w/ Epi 1:100k</option>
+                            <option>Articaine 4% w/ Epi 1:100k</option>
+                            <option>Mepivacaine 3%</option>
+                        </select>
+                        <div class="flex gap-2 mt-2">
+                             <input type="number" placeholder="Vol (ml)" class="border rounded p-2 w-1/3" value="1.8">
+                             <select class="border rounded p-2 w-2/3"><option>IAN Block</option><option>Infiltration</option></select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                         <label class="block text-sm font-medium text-gray-700 mb-1">Isolation</label>
+                         <label class="flex items-center gap-2 p-3 border rounded-lg bg-gray-50">
+                            <input type="checkbox" checked class="w-5 h-5 text-blue-600">
+                            <span class="text-sm">Rubber Dam Placed (Single Tooth)</span>
+                         </label>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Procedure -->
+                <div id="step-2" class="step-content space-y-4">
+                    
+                    <!-- Quick Insert -->
+                    <div class="flex gap-2 overflow-x-auto pb-2">
+                        <button onclick="insertNote('Access cavity preparation completed.')" class="whitespace-nowrap bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">+ Access</button>
+                        <button onclick="insertNote('WL determined with EAL.')" class="whitespace-nowrap bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">+ WL</button>
+                        <button onclick="insertNote('NaOCl 5.25% irrigation.')" class="whitespace-nowrap bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">+ Irrig</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Intra-op Notes</label>
+                        <textarea id="intra-op-text" class="w-full border rounded-lg p-3 h-48 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Describe procedures...">${s.free_text_notes.intra_op_notes || ''}</textarea>
+                    </div>
+                    
+                    <!-- Checklist -->
+                     <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                        <h4 class="text-xs font-bold uppercase text-yellow-800 mb-2">Safety Checklist</h4>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked> Rubber dam seal verified</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox"> WL confirmed radiographically</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Post-Op -->
+                <div id="step-3" class="step-content space-y-4">
+                     <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Plan for Next Visit</label>
+                        <select class="w-full border rounded-lg p-2 bg-white mb-2">
+                            <option>Obturation</option>
+                            <option>Permanent Restoration</option>
+                            <option>Follow-up 6mo</option>
+                        </select>
+                        <textarea class="w-full border rounded-lg p-3 h-24 text-sm" placeholder="Details..."></textarea>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Sign-off -->
+                <div id="step-4" class="step-content space-y-6 text-center pt-8">
+                    <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                        <i class="fa-solid fa-user-tie text-3xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold">Request Supervisor Sign-off</h3>
+                    <p class="text-sm text-gray-500">Submit this session for faculty review. Once submitted, you cannot edit clinical notes.</p>
+                    
+                    <div class="p-4 bg-gray-50 rounded-lg border text-left text-sm">
+                        <div class="font-bold mb-1">Select Supervisor</div>
+                        <select class="w-full border rounded p-2">
+                            <option>Dr. House</option>
+                            <option>Dr. Cuddy</option>
+                        </select>
+                    </div>
+
+                    <button onclick="app.navigate('case_detail', {caseId: '${s.case_id}'})" class="w-full bg-blue-600 text-white py-3 rounded-xl shadow font-bold">Submit for Review</button>
+                </div>
+
+            </div>
+        </div>
+    `;
+}
+
+// --- SIMILARITY SEARCH (ADMIN) ---
+
+function renderSimilarity(target) {
+    target.innerHTML = `
+        <div class="space-y-4">
+            <h2 class="text-xl font-bold">Case Similarity Engine</h2>
+            <div class="bg-white p-4 rounded-xl shadow-sm border space-y-4">
+                <p class="text-sm text-gray-600">Find cases similar to a target profile based on Schema Analytics Fields.</p>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <select id="sim-tooth-type" class="border p-2 rounded text-sm w-full">
+                        <option value="">Any Tooth Type</option>
+                        ${SCHEMA_CONFIG.tooth_type.map(t => `<option value="${t}">${t}</option>`).join('')}
+                    </select>
+                    <select id="sim-dx" class="border p-2 rounded text-sm w-full">
+                         <option value="">Any Diagnosis</option>
+                        ${SCHEMA_CONFIG.pulp_diagnosis.map(d => `<option value="${d}">${d}</option>`).join('')}
+                    </select>
+                </div>
+                <button onclick="runSimilaritySearch()" class="w-full bg-gray-800 text-white py-2 rounded text-sm font-medium">Find Matches</button>
+            </div>
+
+            <div id="sim-results" class="space-y-3">
+                <!-- Results go here -->
+                <div class="text-center text-gray-400 py-8 italic">Select criteria to search...</div>
+            </div>
+        </div>
+    `;
+}
+
+function runSimilaritySearch() {
+    const type = document.getElementById('sim-tooth-type').value;
+    const dx = document.getElementById('sim-dx').value;
+    
+    // Simple similarity logic: match criteria
+    const matches = db.cases.filter(c => {
+        let score = 0;
+        if(type && c.tooth_type === type) score++;
+        if(dx && c.pulp_diagnosis === dx) score++;
+        return score > 0;
+    });
+
+    const container = document.getElementById('sim-results');
+    if(matches.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500">No matches found.</div>';
+        return;
+    }
+
+    container.innerHTML = `<div class="text-sm font-bold mb-2">${matches.length} matches found</div>` + 
+        matches.map(c => renderCaseCard(c)).join('');
+}
+
+// --- UTILS ---
+
+function createNewCase() {
+    const pid = uuid();
+    // In a real app, this would open a "Select Patient" modal first.
+    // Creating dummy patient for flow demonstration
+    const newPatient = {
+        patient_id: pid,
+        first_name: 'New', last_name: 'Patient',
+        date_of_birth: '1990-01-01',
+        sex: 'female', systemic_conditions: [], age_at_first_visit_years: 30,
+        created_at: new Date().toISOString()
+    };
+    db.patients.push(newPatient);
+    
+    const newCase = {
+        case_id: uuid(),
+        patient_id: pid,
+        primary_student_id: app.state.currentUser.user_id,
+        tooth_number_fdi: '11',
+        tooth_type: 'anterior',
+        case_status: 'open',
+        pulp_diagnosis: 'Normal Pulp',
+        periapical_diagnosis: 'Normal Apical Tissues',
+        opened_at: new Date().toISOString(),
+        systemic_conditions: [],
+        is_emergency_case: false
+    };
+    db.cases.push(newCase);
+    app.navigate('case_detail', {caseId: newCase.case_id});
+}
+
+function startNewSession(caseId) {
+    const newSession = {
+        session_id: uuid(),
+        case_id: caseId,
+        session_number: db.sessions.filter(s => s.case_id === caseId).length + 1,
+        date: new Date().toISOString(),
+        student_id: app.state.currentUser.user_id,
+        session_type: 'treatment',
+        session_status: 'draft',
+        free_text_notes: { intra_op_notes: "" }
+    };
+    db.sessions.push(newSession);
+    app.navigate('session_edit', {sessionId: newSession.session_id});
+}
+
+function switchStep(stepNum) {
+    document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+    document.getElementById(`step-${stepNum}`).classList.add('active');
+    
+    document.querySelectorAll('.step-btn').forEach(btn => {
+        btn.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        btn.classList.add('text-gray-500');
+        if(btn.dataset.step == stepNum) {
+            btn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+            btn.classList.remove('text-gray-500');
+        }
+    });
+}
+
+function insertNote(text) {
+    const area = document.getElementById('intra-op-text');
+    area.value += (area.value ? " " : "") + text;
+}
+
+function exportData(type) {
+    const data = type === 'json' ? JSON.stringify(db, null, 2) : "case_id,tooth,diagnosis\n" + db.cases.map(c => `${c.case_id},${c.tooth_number_fdi},${c.pulp_diagnosis}`).join("\n");
+    const blob = new Blob([data], {type: type === 'json' ? 'application/json' : 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `export.${type}`;
+    a.click();
+}
+
+// Init App
+window.app = app;
+app.init();
+
+</script>
+</body>
+</html>
