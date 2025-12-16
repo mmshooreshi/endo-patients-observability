@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Audio Visualizer</title>
+    <style>
+        /* Base styles for dark, subtle theme */
+        body { margin: 0; overflow: hidden; background-color: #030403; color: #E6E1D3; font-family: 'Inter', sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            background: rgba(3, 4, 3, 0.95);
+            z-index: 10;
+            transition: opacity 0.5s;
+        }
+        #start-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: transparent;
+            color: #C0A889; /* Creamy Brown */
+            border: 2px solid #C0A889;
+            border-radius: 30px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(192, 168, 137, 0.3);
+        }
+        #start-btn:hover {
+            background: #C0A889;
+            color: #000;
+            box-shadow: 0 0 20px rgba(192, 168, 137, 0.6);
+        }
+        .hidden { opacity: 0; pointer-events: none; }
+        h1, p { text-shadow: 0 0 3px rgba(192, 168, 137, 0.5); }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <h1>Subtle Audio Flow</h1>
+        <p>Click to allow microphone access and see the organic reaction.</p>
+        <button id="start-btn">Start Experience</button>
+    </div>
+    
+    <div id="canvas-container"></div>
+
+    <!-- Import Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Configuration ---
+        const CONFIG = {
+            // New subtle, earthy color palette
+            colorA: new THREE.Color('#152213'), // Deep Dark Green/Brown Base
+            colorB: new THREE.Color('#4F433A'), // Mid Brown
+            accent: new THREE.Color('#F7EEDD'), // Creamy Off-White Highlight
+            // REDUCED SNAPPINESS for smooth, non-vibrating motion
+            SNAPPINESS: 0.35 
+        };
+
+        // --- Scene Setup ---
+        const container = document.getElementById('canvas-container');
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        scene.background = CONFIG.colorA;
+        scene.fog = new THREE.FogExp2(CONFIG.colorA, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 8);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // --- Audio Setup ---
+        let analyser, dataArray;
+        let isAudioRunning = false;
+        const uniformData = {
+            low: 0,
+            mid: 0,
+            high: 0
+        };
+
+        async function initAudio() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const source = audioCtx.createMediaStreamSource(stream);
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 512;
+                // Increased smoothing to filter out high-frequency noise from the mic
+                analyser.smoothingTimeConstant = 0.8; 
+                source.connect(analyser);
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                isAudioRunning = true;
+                
+                document.getElementById('overlay').classList.add('hidden');
+            } catch (err) {
+                console.error("Audio init failed:", err);
+                document.getElementById('overlay').innerHTML = `
+                    <h1>Microphone Error</h1>
+                    <p>Failed to access microphone. Please ensure permissions are granted and try refreshing.</p>
+                `;
+            }
+        }
+
+        // --- Shader Material ---
+        
+        const vertexShader = `
+            #define attribute in
+            #define varying out
+            
+            uniform float uTime;
+            uniform float uLowFreq;
+            uniform float uMidFreq;
+            uniform float uHighFreq;
+            
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying float vDisplacement;
+            varying vec3 vViewPosition;
+            varying vec2 vUv;
+
+            // --- HELPER FUNCTIONS DEFINED FIRST ---
+            vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+            vec4 permute(vec4 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+
+            float snoise(vec3 v){
+                const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
+                const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+
+                vec3 i  = floor(v + dot(v, C.yyy) );
+                vec3 x0 = v - i + dot(i, C.xxx) ;
+
+                vec3 g = step(x0.yzx, x0.xyz);
+                vec3 l = 1.0 - g;
+                vec3 i1 = min( g.xyz, l.zxy );
+                vec3 i2 = max( g.xyz, l.zxy );
+
+                vec3 x1 = x0 - i1 + C.xxx;
+                vec3 x2 = x0 - i2 + C.yyy;
+                vec3 x3 = x0 - D.yyy;
+
+                i = mod(i, 289.0 );
+                vec4 p = permute( permute( permute( 
+                            i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                        + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
+                        + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+
+                float n_ = 0.142857142857; 
+                vec3  ns = n_ * D.wyz - D.xzx;
+
+                vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+
+                vec4 x_ = floor(j * ns.z);
+                vec4 y_ = floor(j - 7.0 * x_ );
+                vec4 x = x_ *ns.x + ns.yyyy;
+                vec4 y = y_ *ns.x + ns.yyyy;
+                vec4 h = 1.0 - abs(x) - abs(y);
+
+                vec4 b0 = vec4( x.xy, y.xy );
+                vec4 b1 = vec4( x.zw, y.zw );
+
+                vec4 s0 = floor(b0)*2.0 + 1.0;
+                vec4 s1 = floor(b1)*2.0 + 1.0;
+                vec4 sh = -step(h, vec4(0.0));
+
+                vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+                vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+
+                vec3 p0 = vec3(a0.xy,h.x);
+                vec3 p1 = vec3(a0.zw,h.y);
+                vec3 p2 = vec3(a1.xy,h.z);
+                vec3 p3 = vec3(a1.zw,h.w);
+
+                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+                p0 *= norm.x;
+                p1 *= norm.y;
+                p2 *= norm.z;
+                p3 *= norm.w;
+
+                vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                m = m * m;
+                return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), 
+                                            dot(p2,x2), dot(p3,x3) ) );
+            }
+
+            void main() {
+                vUv = uv;
+                vNormal = normal;
+                
+                // --- Layered Noise System (Low Amplitude for rounded shape) ---
+                
+                // Base (Breathing) uses uLowFreq - Smooth, largest movement
+                float noiseBase = snoise(position * 0.8 + vec3(uTime * 0.1));
+                float displacementBase = noiseBase * (0.2 + uLowFreq * 0.8); 
+
+                // Flow (Midrange) uses uMidFreq - Medium scale, more fluid movement
+                float noiseFlow = snoise(position * 1.5 + vec3(0.0, uTime * 0.4, 0.0));
+                float displacementFlow = noiseFlow * (uMidFreq * 0.6); 
+
+                // Detail (High Freq) uses uHighFreq - Smallest scale, greatly reduced influence
+                float noiseDetail = snoise(position * 4.0 + vec3(uTime * 1.5));
+                float displacementDetail = noiseDetail * (uHighFreq * 0.2); 
+
+                // Combine layers
+                float totalDisplacement = displacementBase + displacementFlow + displacementDetail;
+                
+                vDisplacement = totalDisplacement;
+
+                // Apply displacement along normal
+                vec3 newPosition = position + normal * totalDisplacement;
+                
+                vec4 modelViewPosition = modelViewMatrix * vec4(newPosition, 1.0);
+                vViewPosition = -modelViewPosition.xyz;
+                vPosition = newPosition;
+
+                gl_Position = projectionMatrix * modelViewPosition;
+            }
+        `;
+
+        const fragmentShader = `
+            #define varying in
+            precision highp float;
+
+            uniform float uTime;
+            uniform vec3 uColorA;
+            uniform vec3 uColorB;
+            uniform vec3 uColorAccent;
+            uniform float uLowFreq;
+            
+            varying vec3 vNormal;
+            varying float vDisplacement;
+            varying vec3 vViewPosition;
+            varying vec2 vUv;
+
+            void main() {
+                // Base Gradient Color (Dark green to brownish mid-tone)
+                float t = smoothstep(-0.5, 0.5, vDisplacement);
+                vec3 color = mix(uColorA, uColorB, t);
+
+                // Fresnel Effect (Rim Lighting for subtle edge glow)
+                vec3 viewDir = normalize(vViewPosition);
+                vec3 normal = normalize(vNormal);
+                float fresnelTerm = dot(viewDir, normal);
+                fresnelTerm = clamp(1.0 - fresnelTerm, 0.0, 1.0);
+                fresnelTerm = pow(fresnelTerm, 4.0); 
+                
+                // Dynamic Accent Color (Creamy highlight based on volume)
+                float pulseIntensity = clamp(uLowFreq * 1.5, 0.0, 1.0);
+                
+                // Inner Glow/Subsurface scattering look
+                color = mix(color, uColorAccent, pulseIntensity * 0.15); 
+                
+                // Rim Light (Creamy highlight)
+                color += uColorAccent * fresnelTerm * (0.3 + pulseIntensity * 0.3);
+
+                // Reduce overall brightness slightly to enhance subtlety
+                gl_FragColor = vec4(color * 0.9, 1.0);
+            }
+        `;
+
+        const uniforms = {
+            uTime: { value: 0 },
+            uLowFreq: { value: 0 },
+            uMidFreq: { value: 0 },
+            uHighFreq: { value: 0 },
+            uColorA: { value: CONFIG.colorA },
+            uColorB: { value: CONFIG.colorB },
+            uColorAccent: { value: CONFIG.accent }
+        };
+
+        // --- Mesh (Smaller Icosahedron) ---
+        const geometry = new THREE.IcosahedronGeometry(1.5, 60); 
+        const material = new THREE.ShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: uniforms,
+        });
+
+        const sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+
+        // --- Background particles ---
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 500;
+        const posArray = new Float32Array(starsCount * 3);
+        for(let i=0; i < starsCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 30;
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMat = new THREE.PointsMaterial({ size: 0.05, color: CONFIG.accent, transparent: true, opacity: 0.2 });
+        const stars = new THREE.Points(starsGeo, starsMat);
+        scene.add(stars);
+
+
+        // --- Animation Loop ---
+        function analyzeAudio() {
+            if (!isAudioRunning || !analyser) return;
+
+            analyser.getByteFrequencyData(dataArray);
+
+            let lowSum = 0, midSum = 0, highSum = 0;
+            const lowBound = 10;
+            const midBound = 80;
+
+            for(let i = 0; i < dataArray.length; i++) {
+                let val = dataArray[i] / 255.0; 
+                if (i < lowBound) lowSum += val;
+                else if (i < midBound) midSum += val;
+                else highSum += val;
+            }
+
+            uniformData.low = lowSum / lowBound;
+            uniformData.mid = midSum / (midBound - lowBound);
+            uniformData.high = highSum / (dataArray.length - midBound);
+        }
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = clock.getElapsedTime();
+            
+            analyzeAudio();
+
+            const snappiness = CONFIG.SNAPPINESS;
+
+            uniforms.uTime.value = time;
+            
+            // Smoothed LERP factors to prevent sudden jumps
+            uniforms.uLowFreq.value = THREE.MathUtils.lerp(uniforms.uLowFreq.value, uniformData.low, snappiness);
+            uniforms.uMidFreq.value = THREE.MathUtils.lerp(uniforms.uMidFreq.value, uniformData.mid, snappiness);
+            uniforms.uHighFreq.value = THREE.MathUtils.lerp(uniforms.uHighFreq.value, uniformData.high, snappiness);
+
+            sphere.rotation.x = time * 0.05;
+            sphere.rotation.y = time * 0.07;
+            
+            stars.rotation.y = time * 0.05;
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        document.getElementById('start-btn').addEventListener('click', initAudio);
+
+        animate();
+
+    </script>
+</body>
+</html>
