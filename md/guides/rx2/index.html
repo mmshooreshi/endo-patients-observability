@@ -1,1 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dental Chairside Prescription Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+:root{
+  --bg:#f7f9fc;
+  --card:#ffffff;
+  --ink:#1f2937;
+  --muted:#6b7280;
+  --accent:#2563eb;
+  --warn:#dc2626;
+  --good:#16a34a;
+  --soft:#e5e7eb;
+}
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+}
+
+.container{
+  max-width:1100px;
+  margin:auto;
+  padding:20px;
+}
+
+h1{
+  font-size:1.8rem;
+  margin-bottom:10px;
+}
+
+h2{
+  margin-top:40px;
+  border-left:6px solid var(--accent);
+  padding-left:10px;
+}
+
+h3{
+  margin-top:25px;
+  color:var(--accent);
+}
+
+nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:20px 0;
+}
+
+nav a{
+  text-decoration:none;
+  background:var(--card);
+  padding:8px 12px;
+  border-radius:8px;
+  color:var(--ink);
+  font-size:0.9rem;
+  border:1px solid var(--soft);
+}
+
+nav a:hover{
+  background:var(--accent);
+  color:white;
+}
+
+.card{
+  background:var(--card);
+  border-radius:12px;
+  padding:16px;
+  margin:15px 0;
+  border:1px solid var(--soft);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+  gap:15px;
+}
+
+.badge{
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:6px;
+  font-size:0.75rem;
+  margin-left:5px;
+}
+
+.red{background:#fee2e2;color:#991b1b;}
+.green{background:#dcfce7;color:#166534;}
+.blue{background:#dbeafe;color:#1e3a8a;}
+.yellow{background:#fef3c7;color:#92400e;}
+
+ul{
+  padding-left:18px;
+  margin:8px 0;
+}
+
+li{
+  margin:6px 0;
+}
+
+.table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+.table th,.table td{
+  border:1px solid var(--soft);
+  padding:8px;
+  font-size:0.9rem;
+}
+
+.table th{
+  background:#f1f5f9;
+}
+
+.hover{
+  position:relative;
+  cursor:help;
+}
+
+.hover:hover::after{
+  content:attr(data-tip);
+  position:absolute;
+  bottom:120%;
+  left:0;
+  background:#111;
+  color:#fff;
+  padding:6px 8px;
+  border-radius:6px;
+  font-size:0.75rem;
+  white-space:nowrap;
+}
+
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.4);
+}
+
+.modal:target{
+  display:block;
+}
+
+.modal-box{
+  background:white;
+  max-width:500px;
+  margin:10% auto;
+  padding:20px;
+  border-radius:12px;
+}
+
+.close{
+  float:right;
+  text-decoration:none;
+  font-size:1.2rem;
+}
+
+.footer{
+  text-align:center;
+  color:var(--muted);
+  font-size:0.85rem;
+  margin:40px 0 10px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1><i class="fa-solid fa-tooth"></i> Dental Chairside Prescription Guide</h1>
+<p><strong>Purpose:</strong> <span class="blue badge">Use BEFORE prescribing or starting treatment</span></p>
+
+<nav>
+  <a href="#diagnosis"><i class="fa-solid fa-magnifying-glass"></i> Diagnosis</a>
+  <a href="#plan"><i class="fa-solid fa-clipboard-list"></i> Plan</a>
+  <a href="#drugs"><i class="fa-solid fa-pills"></i> Drugs</a>
+  <a href="#routes"><i class="fa-solid fa-route"></i> Routes</a>
+  <a href="#forms"><i class="fa-solid fa-capsules"></i> Forms</a>
+  <a href="#scenarios"><i class="fa-solid fa-briefcase-medical"></i> Scenarios</a>
+  <a href="#checks"><i class="fa-solid fa-check-double"></i> Final Check</a>
+</nav>
+
+<!-- DIAGNOSIS -->
+<h2 id="diagnosis"><i class="fa-solid fa-magnifying-glass"></i> 1. Diagnosis FIRST</h2>
+<div class="card">
+<ul>
+<li><strong>No diagnosis = No prescription</strong> <span class="red badge">Critical</span></li>
+<li>Swelling ≠ always infection</li>
+<li>Pain ≠ always antibiotic indication</li>
+</ul>
+
+<table class="table">
+<tr><th>Finding</th><th>Think</th><th>Action</th></tr>
+<tr><td>Localized abscess</td><td>Odontogenic infection</td><td>Drain ± Antibiotic</td></tr>
+<tr><td>Diffuse swelling + fever</td><td>Spreading infection</td><td>Antibiotic + referral</td></tr>
+<tr><td>White oral lesion</td><td>Fungal?</td><td>Antifungal, not antibiotic</td></tr>
+</table>
+</div>
+
+<!-- PLAN -->
+<h2 id="plan"><i class="fa-solid fa-clipboard-list"></i> 2. Treatment Plan</h2>
+<div class="grid">
+<div class="card">
+<h3><i class="fa-solid fa-pills"></i> Drug Only</h3>
+<p>Mild infection, no systemic signs</p>
+</div>
+
+<div class="card">
+<h3><i class="fa-solid fa-scalpel"></i> Surgery Only</h3>
+<p>Drainable abscess, no systemic spread</p>
+</div>
+
+<div class="card">
+<h3><i class="fa-solid fa-layer-group"></i> Both</h3>
+<p>Abscess + swelling + pain</p>
+</div>
+
+<div class="card">
+<h3><i class="fa-solid fa-hospital"></i> Refer</h3>
+<p>Trismus, airway risk, immunocompromised</p>
+</div>
+</div>
+
+<!-- DRUGS -->
+<h2 id="drugs"><i class="fa-solid fa-pills"></i> 3. Common Dental Drugs</h2>
+<div class="card">
+<table class="table">
+<tr><th>Drug</th><th>Standard Dose</th><th>Notes</th></tr>
+<tr><td>Amoxicillin</td><td>500 mg TID</td><td>First line</td></tr>
+<tr><td>Amox-Clav</td><td>625 mg TID</td><td>Severe / resistant</td></tr>
+<tr><td>Clindamycin</td><td>300 mg QID</td><td>Penicillin allergy</td></tr>
+<tr><td>Metronidazole</td><td>500 mg TID</td><td>No alcohol 48h</td></tr>
+<tr><td>Ibuprofen</td><td>400–600 mg q6–8h</td><td>Avoid renal / GI risk</td></tr>
+<tr><td>Acetaminophen</td><td>500–1000 mg</td><td>Safest analgesic</td></tr>
+</table>
+</div>
+
+<!-- ROUTES -->
+<h2 id="routes"><i class="fa-solid fa-route"></i> 4. Routes</h2>
+<div class="card">
+<ul>
+<li><strong>Oral:</strong> default route</li>
+<li><strong>Topical:</strong> chlorhexidine, gels</li>
+<li><strong>IM:</strong> severe swelling when oral not possible</li>
+<li><strong>IV:</strong> hospital only</li>
+<li><strong>Inhalation:</strong> nitrous oxide sedation</li>
+</ul>
+</div>
+
+<!-- FORMS -->
+<h2 id="forms"><i class="fa-solid fa-capsules"></i> 5. Forms</h2>
+<div class="card">
+<ul>
+<li>Tablets / capsules → adults</li>
+<li>Syrup / suspension → pediatrics (shake well)</li>
+<li>Mouth rinse → plaque, surgery care</li>
+<li>Gel / ointment → localized pain</li>
+<li>ER / EC → <span class="hover" data-tip="Do not crush">special instructions</span></li>
+</ul>
+</div>
+
+<!-- SCENARIOS -->
+<h2 id="scenarios"><i class="fa-solid fa-briefcase-medical"></i> 6. Common Chairside Scenarios</h2>
+<div class="card">
+<table class="table">
+<tr><th>Scenario</th><th>Action</th></tr>
+<tr><td>Acute abscess</td><td>Drain + Amoxicillin</td></tr>
+<tr><td>Penicillin allergy</td><td>Clindamycin</td></tr>
+<tr><td>Post extraction pain</td><td>Ibuprofen ± Acetaminophen</td></tr>
+<tr><td>Fungal lesion</td><td>Nystatin rinse</td></tr>
+<tr><td>Anxious child</td><td>N₂O inhalation</td></tr>
+</table>
+</div>
+
+<!-- FINAL CHECK -->
+<h2 id="checks"><i class="fa-solid fa-check-double"></i> 7. Final Chairside Check</h2>
+<div class="card">
+<ul>
+<li>✔ Diagnosis confirmed</li>
+<li>✔ Allergy checked</li>
+<li>✔ Correct drug, dose, duration</li>
+<li>✔ Route & form appropriate</li>
+<li>✔ Patient instructed clearly</li>
+<li>✔ Follow-up planned</li>
+</ul>
+<p><strong class="green badge">Prescribing = clinical + legal responsibility</strong></p>
+</div>
+
+<div class="footer">
+Dental Chairside Guide • Fast • Safe • Practical
+</div>
+
+</div>
+</body>
+</html>
