@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نسخه‌نویسی پزشکی و دندانپزشکی - راهنمای کامل</title>
+
+<!-- Fonts -->
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css">
+
+<!-- Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
+<style>
+  body {
+    font-family: 'Vazir', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f9f9f9;
+    line-height: 1.6;
+    scroll-behavior: smooth;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 999;
+    border-bottom: 1px solid #ddd;
+  }
+  .navbar {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 10px;
+    scrollbar-width: none;
+  }
+  .navbar::-webkit-scrollbar { display: none; }
+  .navbar a {
+    display: inline-block;
+    margin: 0 15px;
+    padding: 10px 5px;
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    transition: 0.3s;
+    border-bottom: 3px solid transparent;
+  }
+  .navbar a.active {
+    color: #007bff;
+    border-bottom: 3px solid #007bff;
+  }
+  section {
+    padding: 40px 20px;
+    background: #fff;
+    margin: 10px auto;
+    border-radius: 10px;
+    max-width: 900px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  h2 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+  h2 i { color: #007bff; }
+  ul { padding-inline-start: 20px; margin-top: 10px; }
+  li { margin-bottom: 8px; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <nav class="navbar" id="navbar"></nav>
+</header>
+
+<main id="content"></main>
+
+<!-- Embed data.js here (2nd code block) -->
+<script src="data.js"></script>
+
+<script>
+  // Render navbar and sections
+  const navbar = document.getElementById('navbar');
+  const content = document.getElementById('content');
+
+  data.sections.forEach((section, idx) => {
+    // Navbar item
+    const navLink = document.createElement('a');
+    navLink.href = `#section${idx}`;
+    navLink.innerHTML = `<i class="${section.icon}"></i> ${section.title}`;
+    navLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById(`section${idx}`).scrollIntoView({behavior: 'smooth', block: 'center'});
+    });
+    navbar.appendChild(navLink);
+
+    // Section content
+    const sec = document.createElement('section');
+    sec.id = `section${idx}`;
+    let html = `<h2><i class="${section.icon}"></i> ${section.title}</h2>`;
+    section.content.forEach(block => {
+      if(block.type === 'paragraph') html += `<p>${block.text}</p>`;
+      if(block.type === 'list') html += `<ul>${block.items.map(i=>`<li>${i}</li>`).join('')}</ul>`;
+    });
+    sec.innerHTML = html;
+    content.appendChild(sec);
+  });
+
+  // Scrollspy effect
+  const navLinks = document.querySelectorAll('.navbar a');
+  window.addEventListener('scroll', () => {
+    let fromTop = window.scrollY + 100;
+    data.sections.forEach((section, idx) => {
+      const secEl = document.getElementById(`section${idx}`);
+      if(secEl.offsetTop <= fromTop && secEl.offsetTop + secEl.offsetHeight > fromTop) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        navLinks[idx].classList.add('active');
+        // Auto scroll to center selected item
+        navLinks[idx].scrollIntoView({behavior:'smooth', inline:'center'});
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
