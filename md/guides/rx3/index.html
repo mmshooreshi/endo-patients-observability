@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dental Chairside Guide – 3D Edition</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<!-- Motion One -->
+<script src="https://cdn.jsdelivr.net/npm/motion@10.16.2/dist/motion.min.js"></script>
+
+<!-- Three.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+
+<style>
+:root{
+  --bg:#0b1220;
+  --card:#111827;
+  --ink:#e5e7eb;
+  --muted:#9ca3af;
+  --accent:#38bdf8;
+  --warn:#f87171;
+  --good:#4ade80;
+  --soft:#1f2937;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  overflow-x:hidden;
+}
+
+canvas{
+  position:fixed;
+  inset:0;
+  z-index:-1;
+}
+
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:30px 20px 80px;
+}
+
+h1{
+  font-size:2rem;
+  margin-bottom:10px;
+}
+
+h2{
+  margin-top:50px;
+  border-left:6px solid var(--accent);
+  padding-left:12px;
+}
+
+h3{
+  color:var(--accent);
+  margin-top:0;
+}
+
+nav{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin:20px 0 40px;
+}
+
+nav a{
+  text-decoration:none;
+  background:rgba(255,255,255,0.04);
+  padding:10px 14px;
+  border-radius:10px;
+  color:var(--ink);
+  border:1px solid var(--soft);
+  backdrop-filter: blur(8px);
+}
+
+nav a:hover{
+  background:var(--accent);
+  color:#000;
+}
+
+.card{
+  background:rgba(17,24,39,0.85);
+  border-radius:16px;
+  padding:20px;
+  margin:20px 0;
+  border:1px solid var(--soft);
+  backdrop-filter: blur(10px);
+  transform-style: preserve-3d;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+  gap:18px;
+}
+
+.badge{
+  padding:3px 10px;
+  border-radius:8px;
+  font-size:0.75rem;
+  margin-left:6px;
+}
+
+.red{background:#3f1d1d;color:#fecaca}
+.green{background:#11301d;color:#bbf7d0}
+.blue{background:#0b2a3a;color:#bae6fd}
+.yellow{background:#3a2a0b;color:#fde68a}
+
+ul{padding-left:18px}
+li{margin:8px 0}
+
+.table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+.table th,.table td{
+  border:1px solid var(--soft);
+  padding:10px;
+}
+
+.table th{
+  background:#020617;
+}
+
+.footer{
+  text-align:center;
+  color:var(--muted);
+  margin-top:60px;
+  font-size:0.9rem;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="container">
+
+<h1 id="title"><i class="fa-solid fa-tooth"></i> Dental Chairside Prescription Guide</h1>
+<p class="blue badge">Use BEFORE any prescription or intervention</p>
+
+<nav id="nav">
+  <a href="#dx"><i class="fa-solid fa-magnifying-glass"></i> Diagnosis</a>
+  <a href="#plan"><i class="fa-solid fa-clipboard-list"></i> Plan</a>
+  <a href="#drugs"><i class="fa-solid fa-pills"></i> Drugs</a>
+  <a href="#routes"><i class="fa-solid fa-route"></i> Routes</a>
+  <a href="#forms"><i class="fa-solid fa-capsules"></i> Forms</a>
+  <a href="#scenarios"><i class="fa-solid fa-briefcase-medical"></i> Scenarios</a>
+  <a href="#final"><i class="fa-solid fa-check-double"></i> Final Check</a>
+</nav>
+
+<section id="dx" class="card">
+<h2><i class="fa-solid fa-magnifying-glass"></i> Diagnosis First</h2>
+<ul>
+<li><strong>No diagnosis → No drug</strong> <span class="red badge">Critical</span></li>
+<li>Pain ≠ infection</li>
+<li>Swelling ≠ antibiotic always</li>
+</ul>
+
+<table class="table">
+<tr><th>Finding</th><th>Think</th><th>Action</th></tr>
+<tr><td>Localized abscess</td><td>Odontogenic</td><td>Drain ± antibiotic</td></tr>
+<tr><td>Diffuse swelling + fever</td><td>Spreading infection</td><td>Antibiotic + referral</td></tr>
+<tr><td>White lesion</td><td>Fungal</td><td>Antifungal</td></tr>
+</table>
+</section>
+
+<section id="plan" class="card">
+<h2><i class="fa-solid fa-clipboard-list"></i> Treatment Plan</h2>
+<div class="grid">
+<div class="card"><h3><i class="fa-solid fa-pills"></i> Drug Only</h3>Mild infection</div>
+<div class="card"><h3><i class="fa-solid fa-scalpel"></i> Surgery Only</h3>Drainable abscess</div>
+<div class="card"><h3><i class="fa-solid fa-layer-group"></i> Both</h3>Abscess + pain</div>
+<div class="card"><h3><i class="fa-solid fa-hospital"></i> Refer</h3>Trismus / airway risk</div>
+</div>
+</section>
+
+<section id="drugs" class="card">
+<h2><i class="fa-solid fa-pills"></i> Common Dental Drugs</h2>
+<table class="table">
+<tr><th>Drug</th><th>Dose</th><th>Notes</th></tr>
+<tr><td>Amoxicillin</td><td>500 mg TID</td><td>First line</td></tr>
+<tr><td>Amox-Clav</td><td>625 mg TID</td><td>Severe</td></tr>
+<tr><td>Clindamycin</td><td>300 mg QID</td><td>Penicillin allergy</td></tr>
+<tr><td>Metronidazole</td><td>500 mg TID</td><td>No alcohol</td></tr>
+<tr><td>Ibuprofen</td><td>400–600 mg</td><td>NSAID risk</td></tr>
+<tr><td>Acetaminophen</td><td>500–1000 mg</td><td>Safest</td></tr>
+</table>
+</section>
+
+<section id="routes" class="card">
+<h2><i class="fa-solid fa-route"></i> Routes</h2>
+<ul>
+<li><strong>Oral:</strong> default</li>
+<li><strong>Topical:</strong> chlorhexidine, gels</li>
+<li><strong>IM:</strong> severe swelling</li>
+<li><strong>IV:</strong> hospital only</li>
+<li><strong>Inhalation:</strong> N₂O sedation</li>
+</ul>
+</section>
+
+<section id="forms" class="card">
+<h2><i class="fa-solid fa-capsules"></i> Dosage Forms</h2>
+<ul>
+<li>Tablets / capsules → adults</li>
+<li>Syrup / suspension → pediatrics</li>
+<li>Mouth rinse → plaque / surgery</li>
+<li>Gels → localized pain</li>
+<li>ER / EC → never crush</li>
+</ul>
+</section>
+
+<section id="scenarios" class="card">
+<h2><i class="fa-solid fa-briefcase-medical"></i> Chairside Scenarios</h2>
+<table class="table">
+<tr><th>Scenario</th><th>Action</th></tr>
+<tr><td>Acute abscess</td><td>Drain + amoxicillin</td></tr>
+<tr><td>Penicillin allergy</td><td>Clindamycin</td></tr>
+<tr><td>Post-op pain</td><td>Ibuprofen ± acetaminophen</td></tr>
+<tr><td>Fungal lesion</td><td>Nystatin rinse</td></tr>
+<tr><td>Anxious child</td><td>N₂O</td></tr>
+</table>
+</section>
+
+<section id="final" class="card">
+<h2><i class="fa-solid fa-check-double"></i> Final Chairside Check</h2>
+<ul>
+<li>✔ Diagnosis confirmed</li>
+<li>✔ Allergy checked</li>
+<li>✔ Correct drug, dose, duration</li>
+<li>✔ Route & form correct</li>
+<li>✔ Patient educated</li>
+<li>✔ Follow-up planned</li>
+</ul>
+<span class="green badge">Clinical + Legal Responsibility</span>
+</section>
+
+<div class="footer">
+3D Chairside Dental Guide • Calm • Precise • Safe
+</div>
+
+</div>
+
+<script>
+// Motion animations
+motion.animate("#title",{opacity:[0,1],y:[-30,0]},{duration:0.8});
+motion.animate(".card",{opacity:[0,1],y:[20,0]},{delay:0.2,stagger:0.08});
+motion.animate("nav a",{opacity:[0,1],scale:[0.9,1]},{delay:0.3,stagger:0.05});
+
+// Three.js background
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.z = 6;
+
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById("bg"),alpha:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const geometry = new THREE.IcosahedronGeometry(2.5,1);
+const material = new THREE.MeshStandardMaterial({
+  color:0x38bdf8,
+  wireframe:true,
+  transparent:true,
+  opacity:0.15
+});
+
+const mesh = new THREE.Mesh(geometry, material);
+scene.add(mesh);
+
+const light = new THREE.PointLight(0xffffff,1);
+light.position.set(5,5,5);
+scene.add(light);
+
+function animate(){
+  requestAnimationFrame(animate);
+  mesh.rotation.x += 0.0008;
+  mesh.rotation.y += 0.001;
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener("resize",()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>
