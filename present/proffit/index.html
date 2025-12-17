@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orthodontic Slide Viewer (Proffit)</title>
+    <style>
+        /* Global & Reset */
+        :root {
+            --color-dark: #1e1e1e;
+            --color-light: #f0f0f0;
+            --color-accent: #00bcd4; /* Cyan */
+            --color-highlight-yellow: #ffeb3b;
+            --color-highlight-pink: #ff4081;
+            --color-figure: #333333;
+            --font-size-title: 2.5rem;
+            --font-size-heading: 1.8rem;
+            --font-size-content: 1.3rem;
+        }
+
+        body {
+            background-color: var(--color-dark);
+            color: var(--color-light);
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Slide Container */
+        #slide-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .slide {
+            background: #282c34;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 1200px;
+            min-height: 600px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            transform: scale(0.98);
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            border-right: 8px solid var(--color-accent); /* ADHD Visual Anchor */
+        }
+        
+        .slide.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Content Styling */
+        .slide h1, .slide h2 {
+            color: var(--color-accent);
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: var(--font-size-title);
+            font-weight: 700;
+        }
+
+        .slide h3 {
+            font-size: var(--font-size-heading);
+            color: var(--color-highlight-yellow);
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .slide ul, .slide ol {
+            padding-right: 30px;
+            margin-bottom: 20px;
+        }
+
+        .slide li {
+            margin-bottom: 15px;
+            font-size: var(--font-size-content);
+        }
+
+        /* Custom Markdown Formatting */
+        .slide b {
+            color: var(--color-highlight-pink);
+            font-weight: 800;
+        }
+        .slide u {
+            text-decoration-color: var(--color-accent);
+            text-decoration-thickness: 3px;
+        }
+        .slide .highlight { /* For <h> tags in the source */
+            background-color: rgba(255, 235, 59, 0.15); /* Soft yellow background */
+            color: var(--color-highlight-yellow);
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+        
+        /* Presenter Notes Styling */
+        #notes-display {
+            font-family: 'Tahoma', sans-serif; /* A clearer Persian font if available */
+            direction: rtl;
+            text-align: right;
+            line-height: 2.2; /* Generous line height */
+            color: #ccc;
+            font-size: 1.5rem;
+        }
+        #notes-display h3 {
+            color: var(--color-highlight-pink);
+            font-size: 2rem;
+            margin-top: 0;
+        }
+        #notes-display ul {
+             list-style-type: '★ ';
+        }
+
+        /* Figure Placeholder */
+        .figure-box {
+            background-color: var(--color-figure);
+            color: #ddd;
+            border: 2px dashed var(--color-highlight-yellow);
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+            border-radius: 8px;
+            max-width: 80%;
+            font-size: 1.1rem;
+        }
+        .figure-box strong {
+            color: var(--color-highlight-yellow);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Controls */
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            background-color: #111;
+            border-top: 1px solid #333;
+        }
+
+        .nav-button {
+            background-color: var(--color-accent);
+            color: var(--color-dark);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background-color 0.3s, opacity 0.3s;
+            font-weight: bold;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            background-color: #0097a7;
+        }
+
+        .nav-button:disabled {
+            background-color: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        /* Toggle Switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+            color: var(--color-light);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin: 0 15px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--color-accent);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="slide-container">
+        </div>
+
+    <div id="controls">
+        <button class="nav-button" id="prev-btn" disabled>← Previous</button>
+        
+        <div class="toggle-container">
+            <label for="notes-toggle">Presenter Notes</label>
+            <label class="switch">
+                <input type="checkbox" id="notes-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div id="slide-info"></div>
+
+        <button class="nav-button" id="next-btn">Next →</button>
+    </div>
+
+    <script>
+        // --- DATA STRUCTURE (Constructed from previous markdown output) ---
+        const slideData = [
+            {
+                title: "Clinical Management of Functional Appliances",
+                content: "<h1>Clinical Management of Functional Appliances</h1><h3><b>Chapter 14:</b> Growth Modification in Class II<br>Source: <u>Proffit Contemporary Orthodontics</u></h3>",
+                notes: "<h3>خوش آمدید</h3><p>این ارائه مربوط به فصل ۱۴ کتاب پروفیت است.</p>"
+            },
+            {
+                title: "Removable Functional Appliances",
+                content: "<h2>Removable Functional Appliances</h2><ul><li>When a removable functional appliance is returned from the laboratory, it should be <u>checked for correct construction and fit</u> on the working cast.</li><li>The best technique for delivery is to <b>adjust the appliance and work with the child to master insertion and removal</b> before any discussion with the parent.</li><li>This enables the child to be the <span class=\"highlight\">full focus of attention initially</span> and forestalls the effect of comments by the parents such as “That will be a mouthful!”</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>مفهوم (Concept): استراتژی 'اول کودک'.</li><li>چرا؟ (Why?): اگر والدین همان اول پلاک بزرگ را ببینند، ممکن است بگویند 'وای چقدر بزرگه!'. این حرف‌ها (Negative suggestion) باعث می‌شود کودک گارد بگیرد.</li><li>راهکار (Strategy): اول به کودک یاد می‌دهیم تا احساس 'تسلط' (Mastery) کند، بعد به والدین نشان می‌دهیم.</li><li>آنالوژی (Analogy): مثل یاد گرفتن یک تردستی است. اول خودت یاد می‌گیری، بعد که مسلط شدی به بقیه نشان می‌دهی.</li></ul>"
+            },
+            {
+                title: "Break-in Period & Speech",
+                content: "<h2>Break-in Period & Speech</h2><ul><li>With any functional appliance, a <b>break-in period is helpful</b>.</li><li>Having the child wear the appliance only a <u>short time per day to begin with</u> and increasing this time gradually over the first few weeks is a useful method of introduction.</li><li>The child should be informed that <span class=\"highlight\">speaking may be difficult for a while</span> but that comfort and speaking facility will increase.</li><li>Problems with speech are greatest when there is a <b>bulk of acrylic behind or between the anterior teeth</b>.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>دوره عادت‌کردن (Break-in): مثل کفش نو است. نباید روز اول ۲۴ ساعته پوشید.</li><li>مشکل گفتاری (Speech): پلاستیک پشت دندان‌های جلو، فضای زبان را می‌گیرد. برای ادای حروف 'س' و 'ت' زبان فضا ندارد.</li><li>راه حل: بلند بلند کتاب خواندن در خانه برای عادت کردن مغز به فضای جدید.</li></ul>"
+            },
+            {
+                title: "Timing: Circadian Rhythm",
+                content: "<h2>Timing: Circadian Rhythm</h2><ul><li>To be effective, functional appliances should be worn <b>when growth is occurring</b> and when teeth are erupting.</li><li>If the appliance is in place during these hours, one can take advantage of skeletal growth and either use or inhibit tooth eruption.</li><li>It is known now that <span class=\"highlight\">skeletal growth has a circadian rhythm</span>.</li><li>Most growth occurs during the <u>evening hours when growth hormone is being secreted</u>;</li><li>Active eruption of teeth occurs during the same time period, typically between <b>8 pm and midnight or 1 am</b>.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>ریتم شبانه‌روزی (Circadian Rhythm): ترشح هورمون رشد (GH) شب‌ها اتفاق می‌افتد.</li><li>ساعت طلایی: بین ۸ شب تا ۱ بامداد.</li><li>اشتباه رایج: اگر مریض ساعت ۱۱ شب بخوابد و پلاک را بگذارد، پیک ترشح هورمون (۸ تا ۱۲ شب) را از دست داده است.</li></ul>"
+            },
+            {
+                title: "Practical Recommendations",
+                content: "<h2>Practical Recommendations</h2><ul><li>To take practical advantage of this time period, it is suggested that children wear functional appliances <b>from after the evening meal until they awaken in the morning</b>, which should be approximately 12 hours per day.</li><li>Waiting until <span class=\"highlight\">bedtime</span> to insert the appliance misses part of the period of active growth.</li><li>Wearing the appliance during the day may add a small advantage, but this is <u>difficult to achieve</u> because:<ul><li>It begins to impinge on school hours.</li><li>Can increase the <span class=\"highlight\">negative social impact</span> of the appliance.</li><li>Can increase appliance loss and breakage.</li></ul></li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>قانون طلایی 'بعد از شام' (After Dinner Rule): دستور صحیح این است: 'بعد از شام مسواک بزن و پلاک را بگذار'.</li><li>چرا مدرسه نه؟ در مدرسه رشد اسکلتی فعال نیست ولی خطر مسخره شدن و گم شدن پلاک زیاد است.</li></ul>"
+            },
+            {
+                title: "Appointments & Compliance",
+                content: "<h2>Appointments & Compliance</h2><ul><li>A good appointment schedule is to recall the child at <b>1 and 2 weeks after insertion</b> for inspection of the tissues and the appliance.</li><li>If the patient does not call about a problem during the first week, the 1-week appointment can be cancelled.</li><li>Charts for children to record their “wearing time” are helpful, both for the data they provide and because the chart serves as a <u>reinforcement for the desired behavior</u>.</li><li>Unfortunately, the time reported by patients and actual compliance often <span class=\"highlight\">do not coincide</span>.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>مدیریت جلسات: ویزیت اول یک هفته بعد باشد.</li><li>چارت‌های همکاری: بیشتر جنبه روانی دارند. حتی اگر کودک دروغ بنویسد، عمل نوشتن باعث یادآوری وظیفه می‌شود.</li></ul>"
+            },
+            {
+                title: "Managing Sore Spots",
+                content: "<h2>Managing Sore Spots</h2><ul><li>If a sore spot develops, the child should be encouraged to <b>wear the appliance a few hours each day for 2 days before the appointment</b>.</li><li>This ensures that the <span class=\"highlight\">source of the problem</span> can be determined accurately.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>قانون ۲ روز (2-Day Rule): اگر مریض پلاک را در بیاورد، زخم خوب می‌شود و دکتر نمی‌فهمد کجای پلاک مشکل دارد.</li><li>دستور به بیمار: 'باید قبل از آمدن پیش من کمی بپوشی تا جای قرمزی معلوم باشد.'</li></ul>"
+            },
+            {
+                title: "Fixed vs. Removable Transition",
+                content: "<h2>Fixed vs. Removable Transition</h2><ul><li>The type and magnitude of tooth movement required, but a <b>fixed functional appliance</b> is quite compatible with bonded attachments on incisors and a removable one is not.</li><li>In general, a <u>short period of treatment with limited banding and bonding</u> of the maxillary teeth accomplishes the necessary alignment and overjet.</li><li>This allows an appropriate <span class=\"highlight\">working bite</span> to be obtained with the mandible positioned anteriorly and inferiorly.</li><li>To control the tendency of the repositioned incisors to relapse lingually, they should be held in place for several months after being repositioned.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>تفاوت تکنیکی: در دستگاه ثابت (Herbst) می‌توانیم همزمان براکت داشته باشیم.</li><li>استراتژی: اول دندان‌ها را کمی صاف می‌کنیم، بعد بایت (Working Bite) می‌گیریم.</li></ul>"
+            },
+            {
+                title: "Impressions Technique",
+                content: "<h2>Impressions Technique</h2><ul><li>The impression technique for a removable functional appliance depends on the appliance components that will be used.</li><li>Good reproduction of the teeth and an <span class=\"highlight\">accurate representation of the area where the lingual pads or flanges will be placed</span> are mandatory.</li><li>If buccal shields or lip pads are to be used, it is important <b>not to overextend the impressions so that tissue is displaced</b>.</li><li>Improper location of the components leads to long-term soft tissue irritation, discomfort, difficulty in appliance adjustment, and <u>poor patient compliance</u>.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>قالب‌گیری متحرک: نسج نرم و وستیبول بسیار مهم است.</li><li>خطر Overextension: اگر ماده قالب‌گیری با فشار بافت را کنار بزند، دستگاه بلند ساخته می‌شود و دهان را زخم می‌کند.</li></ul>"
+            },
+            {
+                title: "The Working Bite",
+                content: "<h2>The Working Bite</h2><ul><li>The working bite, the jaw position to which the appliance is assembled, is the <b>same for fixed and removable functional appliances</b>.</li><li>It is obtained by <u>advancing the mandible</u> to move the condyles out of the fossa and establishing the desired vertical opening.</li><li>Unless an asymmetry is to be corrected, the mandible should be advanced <span class=\"highlight\">symmetrically</span>.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>تعریف Working Bite: ثبت موقعیت فک پایین در حالتی که جلو آمده است.</li><li>هدف: ما به لابراتوار می‌گوییم دستگاه را طوری بساز که فک مجبور شود در این موقعیت جدید بماند.</li></ul>"
+            },
+            {
+                title: "Advancement Magnitude",
+                content: "<h2>Advancement Magnitude</h2><ul><li>We recommend a <b>4- to 6-mm advancement</b> and a <b>3- to 4-mm vertical opening</b>.</li><li>Always one that is comfortable for the patient and does not move the incisors past an edge-to-edge incisor relationship.</li><li>The practical reason for recommending this <span class=\"highlight\">modest advancement</span> is better patient comfort, facial esthetics, and patient compliance.</li><li>Scientific perspective: Quite large, modest, or relatively small advancements <u>all can produce growth modification</u> and that there is little difference in the results.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>قانون ۴ تا ۶ میلی‌متر: نباید فک را یک‌دفعه خیلی جلو آورد.</li><li>چرا کم؟ راحتی بیمار. تحقیقات جدید نشان داده نتیجه نهایی بین پرش بزرگ و پرش کوچک فرقی ندارد، ولی پرش کوچک درد کمتری دارد.</li></ul>"
+            },
+            {
+                title: "Fig 14.24: Working Bite Steps",
+                content: "<h2>Fig 14.24: Working Bite Steps</h2><div class='figure-box'><strong>Fig. 14.24 – constructed caption</strong><p><b>(A)</b> Multiple layers of hard wax are luted together... avoid interferences from retromolar soft tissues.<br><b>(B)</b> Wax is softened... child practices the working bite position.<br><b>(C)</b> Mandible is guided... minimal posterior opening is <u>3 to 4 mm</u>.<br><b>(D/E)</b> Tongue blades or Boley gauge used to control amount of closure.</p></div>",
+                notes: "<h3>توضیحات شکل 14.24:</h3><ul><li>A: موم نباید به ته دهان (Retromolar) بخورد.</li><li>B & C: دکتر باید خط وسط (Midline) و باز بودن دندان‌ها را چک کند.</li><li>D & E: استفاده از ابزار برای اطمینان از باز ماندن ۳-۴ میلی‌متری فک.</li></ul>"
+            },
+            {
+                title: "Appliance Adjustments",
+                content: "<h2>Appliance Adjustments</h2><ul><li>Smoothing the plastic components can be accomplished quickly.</li><li><b>Gross adjustments should be avoided</b> because appliance fit and purpose can be greatly altered.</li><li>Example: Heavy reduction of the <u>lingual flanges</u> will allow the patient to position the mandible in a more <span class=\"highlight\">posterior position</span>.</li><li>Because initial advancement is limited (4-6 mm), a new appliance may be needed after 6 to 12 months.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>خطر تراشیدن زیاد: اگر باله‌های زبانی (Lingual flanges) را بتراشید، فک لیز می‌خورد عقب و درمان شکست می‌خورد.</li><li>درمان پله‌ای (Step-wise): اگر فاصله فک زیاد است، بعد از ۶ ماه باید پلاک جدید ساخت.</li></ul>"
+            },
+            {
+                title: "Fixed Functional Appliances (Herbst)",
+                content: "<h2>Fixed Functional Appliances (Herbst)</h2><ul><li>At the insertion of a Herbst appliance, MARA, or cemented Twin-Block, discussion should focus on care and acceptable movements.</li><li>Because these are fixed, a <b>wear schedule is not required</b>.</li><li>Patients should be instructed that the appliance is meant to <span class=\"highlight\">remind</span> them to posture the mandible forward and not to force it.</li><li>In this sense, <u>sore teeth for an extended amount of time may indicate poor cooperation</u>.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>مفهوم: دستگاه باید 'یادآور' (Reminder) باشد نه 'اجبار کننده'.</li><li>درد دندان: اگر بیمار سعی کند فک را عقب ببرد (با دستگاه بجنگد)، دندان‌هایش درد می‌گیرد.</li></ul>"
+            },
+            {
+                title: "Fig 14.25: Herbst Results",
+                content: "<h2>Fig 14.25: Herbst Results</h2><div class='figure-box'><strong>Fig. 14.25 – constructed caption</strong><p><b>(E)</b> Cranial base superimposition demonstrates some maxillary restraint (headgear effect) and mandibular downward and forward growth.<br><b>(F)</b> Maxillary superimposition shows the <u>proclination of the upper incisors</u>.<br><b>(G)</b> Mandibular superimposition shows lower molar eruption and mesial movement.</p></div>",
+                notes: "<h3>توضیحات شکل 14.25:</h3><ul><li>اثر روی فک بالا: مثل هدگیر عمل کرده و جلوی رشد را گرفته.</li><li>اثر دندانی: دندان‌های بالا به جلو کج شده‌اند (Proclination) و دندان‌های پایین به جلو حرکت کرده‌اند.</li></ul>"
+            },
+            {
+                title: "Reactivation (Herbst & MARA)",
+                content: "<h2>Reactivation (Herbst & MARA)</h2><ul><li>With the Herbst, changes in pin length can be made by adding <b>sleeves</b> to the pin to restrict its travel.</li><li>With the MARA, advancement is achieved with <span class=\"highlight\">shims</span> on the elbow wire.</li><li>A fixed Twin-Block can have plastic resin added to the inclines.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>فعال‌سازی مجدد: نیاز به ساخت دستگاه جدید نیست.</li><li>Sleeves/Shims: قطعاتی مثل واشر که طول بازو را زیاد می‌کنند و فک را بیشتر جلو می‌برند.</li></ul>"
+            },
+            {
+                title: "The Forsus Appliance",
+                content: "<h2>The Forsus Appliance</h2><ul><li>Assembled from preformed parts chairside <b>once the archwire sequence has advanced to the required stiffness</b>.</li><li>It can be helpful to place <u>lingual root torque</u> in the incisors to combat proclination.</li><li>The <b>Forsus measuring gauge</b> is used to determine the correct size pushrod.</li><li>A reasonable activation has <span class=\"highlight\">2 mm of space</span> between the completely compressed spring and the pushrod stop when the patient is in centric relation.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>زمان نصب: حتما باید سیم‌های ضخیم (Heavy wires) در دهان باشد.</li><li>نصب: فنر (Spring) روی دندان آسیا و میله (Pushrod) روی دندان نیش یا پرمولر قرار می‌گیرد.</li></ul>"
+            },
+            {
+                title: "Removal & Retention Strategy",
+                content: "<h2>Removal & Retention Strategy</h2><ul><li>When desired advancement is achieved (anticipating 1 to 2 mm of relapse), the appliance can be removed.</li><li>A Herbst appliance usually is worn for <b>8 to 12 months</b>.</li><li>If the patient is still in the <u>mixed dentition period</u> when correction is achieved, it is important to consider use of a removable functional appliance (Activator/Bionator) as a retainer.</li><li>This retainer should be worn approximately <span class=\"highlight\">12 hours per day</span> until ready for second phase.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>بازگشت (Relapse): همیشه ۱-۲ میلی‌متر بازگشت داریم، پس Over-correct کنید.</li><li>نگهداری (Retention): اگر دندان‌های شیری هنوز هستند، نمی‌توان براکت بست. باید پلاک متحرک شبانه داد تا فک عقب نرود.</li></ul>"
+            },
+            {
+                title: "Headgear Treatment",
+                content: "<h2>Headgear Treatment</h2><ul><li><b>High-pull headcap:</b> Places a superior and distal force on teeth and maxilla.</li><li><b>Cervical neckstrap:</b> Places an inferior and distal force.</li><li>Headgear force can <span class=\"highlight\">decrease the amount of forward and/or downward growth of the maxilla</span>.</li><li>Class II correction is obtained as the mandible grows normally while maxilla is restrained.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>مکانیزم: 'ترمز کردن' فک بالا.</li><li>های-پول (High-pull): نیرو به سمت بالا (مناسب صورت کشیده).</li><li>سرویکال (Cervical): نیرو به سمت پایین (مناسب صورت کوتاه).</li></ul>"
+            },
+            {
+                title: "Vertical Control Importance",
+                content: "<h2>Vertical Control Importance</h2><ul><li>To correct a Class II, the mandible needs to grow forward relative to the maxilla.</li><li>Important to control the vertical position of the maxilla and posterior teeth.</li><li><b>Downward movement</b> of maxilla or molars tends to project mandibular growth more vertically, which <span class=\"highlight\">nullifies most of the forward mandibular growth</span>.</li></ul>",
+                notes: "<h3>نکات برای سخنران:</h3><ul><li>مهمترین نکته: چرخش فک.</li><li>خطر: اگر دندان‌های آسیا بلند شوند (Extrusion)، فک پایین به عقب می‌چرخد و درمان شکست می‌خورد.</li></ul>"
+            }
+        ];
+
+        // --- CORE APPLICATION LOGIC ---
+        let currentSlideIndex = 0;
+        const slideContainer = document.getElementById('slide-container');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const notesToggle = document.getElementById('notes-toggle');
+        const slideInfo = document.getElementById('slide-info');
+        
+        // --- Initialization and Persistence ---
+        function initialize() {
+            // Load toggle state from localStorage
+            const storedToggle = localStorage.getItem('notesMode');
+            if (storedToggle === 'on') {
+                notesToggle.checked = true;
+            } else {
+                notesToggle.checked = false;
+            }
+
+            // Load last slide index (optional, but good practice)
+            const storedIndex = parseInt(localStorage.getItem('currentSlideIndex') || '0', 10);
+            currentSlideIndex = Math.min(storedIndex, slideData.length - 1);
+            
+            renderSlide(currentSlideIndex);
+            attachEventListeners();
+        }
+
+        // --- Rendering Logic ---
+        function renderSlide(index) {
+            if (index < 0 || index >= slideData.length) return;
+
+            const slide = slideData[index];
+            const isNotesMode = notesToggle.checked;
+
+            const newSlide = document.createElement('div');
+            newSlide.className = 'slide';
+
+            if (isNotesMode) {
+                // Presenter Notes Mode
+                newSlide.id = 'notes-display';
+                newSlide.innerHTML = `<h1>Presenter Notes: ${slide.title}</h1>${slide.notes}`;
+                newSlide.setAttribute('dir', 'rtl');
+            } else {
+                // Content Slide Mode
+                newSlide.innerHTML = slide.content;
+                newSlide.setAttribute('dir', 'ltr'); 
+            }
+
+            // Handle transition and replacement
+            const currentSlide = slideContainer.querySelector('.slide');
+            if (currentSlide) {
+                currentSlide.classList.remove('active');
+                
+                // Use a short timeout for the fade transition
+                setTimeout(() => {
+                    slideContainer.innerHTML = '';
+                    slideContainer.appendChild(newSlide);
+                    setTimeout(() => newSlide.classList.add('active'), 10); // Trigger fade-in
+                }, 500); 
+            } else {
+                slideContainer.appendChild(newSlide);
+                setTimeout(() => newSlide.classList.add('active'), 10);
+            }
+
+            updateControls(index);
+        }
+
+        // --- Control & UI Updates ---
+        function updateControls(index) {
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === slideData.length - 1;
+            slideInfo.textContent = `Slide ${index + 1} of ${slideData.length}`;
+            localStorage.setItem('currentSlideIndex', index.toString());
+        }
+
+        // --- Navigation Handlers ---
+        function navigate(direction) {
+            let newIndex = currentSlideIndex + direction;
+            if (newIndex >= 0 && newIndex < slideData.length) {
+                currentSlideIndex = newIndex;
+                renderSlide(currentSlideIndex);
+            }
+        }
+
+        // --- Event Listeners ---
+        function attachEventListeners() {
+            prevBtn.addEventListener('click', () => navigate(-1));
+            nextBtn.addEventListener('click', () => navigate(1));
+
+            notesToggle.addEventListener('change', (e) => {
+                const mode = e.target.checked ? 'on' : 'off';
+                localStorage.setItem('notesMode', mode);
+                renderSlide(currentSlideIndex);
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') {
+                    navigate(-1);
+                } else if (e.key === 'ArrowRight') {
+                    navigate(1);
+                }
+            });
+        }
+
+        // Run the application
+        initialize();
+    </script>
+</body>
+</html>
