@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dental Prescription Guide</title>
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  body { font-family: Arial, sans-serif; line-height: 1.5; margin: 20px; background-color: #f9f9f9; color: #111; }
+  h1, h2, h3, h4 { color: #2a3f54; }
+  h1 { font-size: 2em; margin-bottom: 0.3em; }
+  h2 { font-size: 1.5em; margin-top: 1em; margin-bottom: 0.3em; }
+  h3 { font-size: 1.2em; margin-top: 1em; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  table, th, td { border: 1px solid #ccc; }
+  th, td { padding: 8px; text-align: left; }
+  th { background-color: #e1e8f0; }
+  tr:nth-child(even) { background-color: #f4f6f9; }
+  .highlight-yellow { background-color: #fff3b0; font-weight: bold; }
+  .highlight-blue { background-color: #cce5ff; font-weight: bold; }
+  .highlight-green { background-color: #d4edda; font-weight: bold; }
+  .highlight-red { background-color: #f8d7da; font-weight: bold; }
+  .icon { color: #2a3f54; margin-right: 6px; }
+  .tip { background-color: #fffbe6; border-left: 4px solid #ffdd57; padding: 8px; margin: 10px 0; }
+  .warning { background-color: #ffe6e6; border-left: 4px solid #ff4d4d; padding: 8px; margin: 10px 0; }
+  .note { background-color: #e6f7ff; border-left: 4px solid #3399ff; padding: 8px; margin: 10px 0; }
+  code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<h1><i class="fas fa-prescription icon"></i>Dental Prescription Guide</h1>
+
+<h2><i class="fas fa-stethoscope icon"></i>1. Accurate Diagnosis</h2>
+<p class="highlight-yellow"><strong>Critical:</strong> No drug should be prescribed without a correct diagnosis.</p>
+<table>
+  <tr>
+    <th>Condition</th>
+    <th>Probable Drug / Action</th>
+  </tr>
+  <tr><td>Oral lesion</td><td>Antifungal</td></tr>
+  <tr><td>Swelling</td><td>Antibiotic</td></tr>
+  <tr><td>Abscess + Trismus</td><td>Medication ± Surgical intervention</td></tr>
+</table>
+<div class="warning"><i class="fas fa-exclamation-triangle icon"></i>Incorrect diagnosis invalidates treatment planning.</div>
+
+<h2><i class="fas fa-notes-medical icon"></i>2. Treatment Planning</h2>
+<p>Decide: <span class="highlight-blue">Drug therapy, Surgery, Both, Referral</span></p>
+<div class="tip"><i class="fas fa-lightbulb icon"></i>Consider systemic condition, severity, and risk of delay.</div>
+
+<h2><i class="fas fa-pills icon"></i>3. Drug, Dose, and Duration</h2>
+<table>
+  <tr>
+    <th>Parameter</th>
+    <th>Importance</th>
+    <th>Consequences of Error</th>
+  </tr>
+  <tr><td>Drug choice</td><td>Matches disease</td><td>Ineffective therapy</td></tr>
+  <tr><td>Dose</td><td>Correct mg/kg</td><td>Under/overdose, resistance</td></tr>
+  <tr><td>Duration</td><td>Correct timing</td><td>Resistance, relapse</td></tr>
+  <tr><td>Frequency</td><td>Proper intervals</td><td>Subtherapeutic / ADRs</td></tr>
+</table>
+
+<h2><i class="fas fa-file-prescription icon"></i>4. Prescription Writing Essentials</h2>
+<p>Reflects <span class="highlight-green">competence</span>. Prescriber is <span class="highlight-red">fully responsible</span> once signed and stamped.</p>
+<ul>
+  <li>Official letterhead or insurance booklet</li>
+  <li>Include: Name, council #, specialty, contact, stamp/sign</li>
+  <li>Patient info: Name, Age, Address, optional diagnosis</li>
+  <li>Drug details: Name (generic preferred), Dosage form, Strength, Quantity, Route, Frequency</li>
+</ul>
+
+<h2><i class="fas fa-route icon"></i>5. Routes of Administration</h2>
+<table>
+  <tr>
+    <th>Route</th>
+    <th>Use / Dental Scenario</th>
+    <th>Notes / Advantages</th>
+  </tr>
+  <tr><td>Oral (PO)</td><td>Amoxicillin for odontogenic infection</td><td>Easy, systemic, slower onset</td></tr>
+  <tr><td>Sublingual (SL)</td><td>Nitroglycerin for angina</td><td>Rapid onset, bypass first-pass metabolism</td></tr>
+  <tr><td>Topical</td><td>Chlorhexidine, benzocaine gel</td><td>Localized, minimal systemic absorption</td></tr>
+  <tr><td>IM</td><td>Penicillin G severe infection</td><td>Rapid, painful injection, hematoma risk</td></tr>
+  <tr><td>IV</td><td>Severe odontogenic infection (hospital)</td><td>Rapid systemic effect, controlled dose</td></tr>
+  <tr><td>SC / SubQ</td><td>Corticosteroid for edema</td><td>Slower than IV, easier than IM</td></tr>
+  <tr><td>Inhalation</td><td>Nitrous oxide sedation</td><td>Rapid onset, minimal systemic effect</td></tr>
+  <tr><td>Rectal / Suppository</td><td>Acetaminophen for pediatric / vomiting</td><td>Alternative if oral not possible</td></tr>
+</table>
+
+<h2><i class="fas fa-capsules icon"></i>6. Dosage Forms & Dental Relevance</h2>
+<table>
+  <tr><th>Form</th><th>Use</th><th>Notes</th></tr>
+  <tr><td>Tablets / Capsules</td><td>Systemic antibiotics / analgesics</td><td>Adult use; chewable for children</td></tr>
+  <tr><td>Syrups / Suspensions</td><td>Pediatric dosing</td><td>Shake suspension before use</td></tr>
+  <tr><td>Mouth rinses</td><td>Chlorhexidine / Fluoride</td><td>Post-surgical or plaque control</td></tr>
+  <tr><td>Gels / Ointments</td><td>Benzocaine, lidocaine</td><td>Topical analgesia / antiseptic</td></tr>
+  <tr><td>Injections</td><td>Local anesthetics, corticosteroids</td><td>Dose must consider patient weight and comorbidity</td></tr>
+  <tr><td>Inhalation</td><td>Nitrous oxide</td><td>Rapid onset analgesia / sedation</td></tr>
+  <tr><td>Suppositories</td><td>Analgesics for pediatric or vomiting patients</td><td>Alternative if oral not feasible</td></tr>
+</table>
+
+<h2><i class="fas fa-briefcase-medical icon"></i>7. Common Dental Medications & Scenarios</h2>
+<table>
+<tr>
+<th>Scenario</th><th>Drug / Regimen</th><th>Notes</th>
+</tr>
+<tr><td>Acute periapical abscess</td><td>Amoxicillin 500 mg PO TID × 5 days ± analgesics</td><td>Mild cases; drainage if needed</td></tr>
+<tr><td>Penicillin allergy</td><td>Clindamycin 300 mg PO QID × 5 days</td><td>Monitor GI side effects</td></tr>
+<tr><td>Post-extraction prophylaxis</td><td>Amoxicillin 2 g PO 1h pre-op</td><td>High-risk patients only (e.g., endocarditis)</td></tr>
+<tr><td>Periodontal / anaerobic infection</td><td>Metronidazole 500 mg PO TID × 5 days</td><td>Combine with Amoxicillin if severe</td></tr>
+<tr><td>Oral fungal lesion</td><td>Nystatin suspension 4–6 mL QID</td><td>Swish & swallow; pediatric use</td></tr>
+<tr><td>Severe swelling / trismus</td><td>Amox-Clav 625 mg PO TID + analgesic ± IM corticosteroid</td><td>May require drainage if no improvement</td></tr>
+<tr><td>Post-op pain</td><td>Ibuprofen 400–600 mg q6–8h or Acetaminophen 500–1000 mg q6h</td><td>Can combine acetaminophen + NSAID if needed</td></tr>
+<tr><td>Pediatric anxiety</td><td>Nitrous oxide inhalation</td><td>Rapid onset, minimal systemic effect</td></tr>
+</table>
+
+<h2><i class="fas fa-exclamation-circle icon"></i>8. Key Tips & Warnings</h2>
+<ul>
+<li><span class="highlight-red">Allergies:</span> Penicillin, NSAIDs, latex</li>
+<li><span class="highlight-yellow">Pediatric / Geriatric dosing:</span> Weight-based if possible</li>
+<li><span class="highlight-blue">NSAID caution:</span> Avoid in peptic ulcer, renal disease, pregnancy 3rd trimester</li>
+<li><span class="highlight-green">Antibiotic stewardship:</span> Shortest effective duration, avoid unnecessary broad-spectrum use</li>
+<li><span class="highlight-yellow">Local anesthesia:</span> Max doses based on weight and comorbidities</li>
+<li><span class="highlight-blue">Patient instructions:</span> Complete full course, post-op care, observe swelling/fever/trismus</li>
+<li><span class="highlight-red">Combination therapy:</span> Amoxicillin + Metronidazole for mixed infections; avoid Amoxicillin + Clindamycin</li>
+</ul>
+
+<h2><i class="fas fa-lightbulb icon"></i>9. High-Yield Mnemonics</h2>
+<p class="tip"><i class="fas fa-brain icon"></i><strong>Diagnosis → Plan → Drug → Dose → Directions → Educate → Follow-up</strong> (<span class="highlight-green">D-P-3D-E-F</span>)</p>
+
+</body>
+</html>
