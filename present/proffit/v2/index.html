@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vazir-font@30.1.0/dist/font-face.min.css">
+    <title>Orthodontic Masterclass: Clinical Management</title>
+    <style>
+        :root {
+            --color-dark: #0f0f12;
+            --color-bg: #1a1b1e;
+            --color-card: #25262b;
+            --color-accent: #00e5ff; /* ADHD Cyan */
+            --color-highlight-yellow: #fff176;
+            --color-highlight-pink: #ff80ab;
+            --color-text: #e8ecef;
+            --font-main: 'Vazir', 'Segoe UI', Tahoma, Helvetica, sans-serif;
+        }
+
+        body {
+            background-color: var(--color-dark);
+            color: var(--color-text);
+            font-family: var(--font-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Slide Container */
+        #slide-view {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            perspective: 1000px;
+        }
+
+        .slide {
+            background-color: var(--color-card);
+            width: 90%;
+            height: 85%;
+            max-width: 1300px;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border-right: 10px solid var(--color-accent);
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Typography & ADHD focus */
+        h1 { font-size: 2rem; color: var(--color-accent); margin-bottom: 1.5rem; border-bottom: 2px solid #333; }
+        h2 { font-size: 1.6rem; color: var(--color-highlight-yellow); margin-bottom: 1rem; }
+        p, li { font-size: 1.1rem; line-height: 1.7; margin-bottom: 1rem; }
+        
+        b { color: var(--color-highlight-pink); font-weight: 800; }
+        u { text-underline-offset: 8px; text-decoration-color: var(--color-accent); }
+        .highlight { background: rgba(0, 229, 255, 0.2); padding: 2px 8px; border-radius: 5px; }
+
+        /* Figures */
+        .figure-box {
+            background: #111;
+            border: 2px dashed #555;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+        }
+        .figure-box strong { color: var(--color-accent); display: block; margin-bottom: 10px; }
+
+        /* Persian Presenter Notes Specifics */
+        .notes-container {
+            direction: rtl;
+            text-align: right;
+            padding: 1rem;
+        }
+        .notes-header {
+            color: var(--color-accent);
+            font-size: 1.2rem;
+            border-bottom: 2px solid var(--color-accent);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .concept-pill {
+            display: inline-block;
+            background: #333;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--color-accent);
+        }
+        .recall-box {
+            background: rgba(255, 241, 118, 0.1);
+            border-right: 5px solid var(--color-highlight-yellow);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            font-size: 1.1rem;
+        }
+
+        /* Footer Controls */
+        #footer {
+            height: 80px;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 3rem;
+        }
+
+        .btn {
+            background: var(--color-accent);
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .btn:disabled { background: #444; cursor: not-allowed; }
+
+        /* Toggle Button */
+        .switch-container { display: flex; align-items: center; gap: 15px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #555; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background: var(--color-accent); }
+        input:checked + .slider:before { transform: translateX(24px); }
+    </style>
+</head>
+<body>
+
+<div id="slide-view">
+    </div>
+
+<div id="footer">
+    <button id="prevBtn" class="btn">Previous</button>
+    <div class="switch-container">
+        <span>Presenter Mode</span>
+        <label class="switch">
+            <input type="checkbox" id="modeToggle">
+            <span class="slider"></span>
+        </label>
+    </div>
+    <div id="counter">Slide 1 / 10</div>
+    <button id="nextBtn" class="btn">Next</button>
+</div>
+
+<script>
+const slideData = [
+    {
+        content: `<h1>Clinical Management</h1><p><b>Chapter 14:</b> Growth Modification in Class II<br>Source: <u>Proffit Contemporary Orthodontics</u></p>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">مقدمه و شروع جلسه</div>
+            <p>در این ارائه، مدیریت بالینی دستگاه‌های فانکشنال را طبق فصل ۱۴ پروفیت بررسی می‌کنیم.</p>
+            <div class="recall-box">
+                <strong>یادآوری (Recall):</strong> دستگاه فانکشنال (Functional Appliance) چیست؟ 
+                هر دستگاهی که با تغییر موقعیت فک پایین (معمولاً به سمت جلو)، نیروهای عضلانی را به دندان‌ها و استخوان منتقل می‌کند تا ناهنجاری فک (مثل عقب بودن فک پایین) را اصلاح کند.
+            </div>
+        </div>`
+    },
+    {
+        content: `<h2>Timing of Wear</h2><ul><li>Skeletal growth has a <span class="highlight">circadian rhythm</span>.</li><li>Most growth occurs during the <b>evening hours</b>.</li><li>Active eruption typically occurs between <u>8 pm and 1 am</u>.</li></ul>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">بیولوژی رشد و زمانبندی</div>
+            <div class="concept-pill">Circadian Rhythm (ریتم شبانه‌روزی)</div>
+            <div class="recall-box">
+                <strong>تعریف برای حضار:</strong> ریتم شبانه‌روزی یعنی چرخه‌ی ۲۴ ساعته‌ی بدن. مثل جزر و مد دریا، هورمون‌های بدن هم در ساعت‌های خاصی بالا و پایین می‌شوند.
+            </div>
+            <p><b>نکته کلیدی:</b> هورمون رشد (Growth Hormone) شب‌ها در خواب عمیق ترشح می‌شود. اگر بیمار دستگاه را فقط موقع خواب (مثلاً ۱۲ شب) بگذارد، پنجره‌ی طلایی ۸ تا ۱۲ شب را از دست داده است.</p>
+            <p><b>استراتژی:</b> به والدین بگویید بلافاصله بعد از شام دستگاه استفاده شود.</p>
+        </div>`
+    },
+    {
+        content: `<h2>The Working Bite</h2><ul><li>Registering the desired mandibular position.</li><li>Mandible advanced <span class="highlight">symmetrically</span>.</li><li>Recommend <b>4-6 mm advancement</b> and <b>3-4 mm vertical opening</b>.</li></ul>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">بایت کاری (Working Bite)</div>
+            <div class="recall-box">
+                <strong>توضیح مفهوم:</strong> "بایت کاری" یعنی ثبت یک رکورد مومی که در آن فک بیمار عمداً به سمت جلو هدایت شده است. این موم به لابراتوار می‌گوید پلاک را در چه وضعیتی بسازد.
+            </div>
+            <p><b>چرا ۴-۶ میلی‌متر؟</b> اگر فک را یک‌باره ۱۰ میلی‌متر جلو بیاوریم، عضلات دچار کشش شدید و درد می‌شوند و بیمار پلاک را پس می‌زند.</p>
+            <p><b>نکته کلیدی:</b> همیشه خط وسط (Midline) را چک کنید تا انحراف ایجاد نشود.</p>
+        </div>`
+    },
+    {
+        content: `<h2>Appliance Delivery</h2><ul><li>Check construction and fit on the cast.</li><li>Master <b>insertion and removal</b> with the child FIRST.</li><li>Avoid <span class="highlight">negative social comments</span> from parents.</li></ul>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">تحویل دستگاه به بیمار</div>
+            <p><b>تکنیک روانشناختی:</b> قبل از صدا کردن والدین، با کودک تمرین کنید. </p>
+            <div class="recall-box">
+                <strong>چرا اول کودک؟</strong> چون والدین با دیدن پلاک حجیم ممکن است بگویند "وای این چقدر بزرگه!" یا "بچه‌ام چطور با این حرف بزنه؟". این جملات "تلقین منفی" ایجاد می‌کند.
+            </div>
+            <p>اگر کودک اول یاد بگیرد و به والدین نشان دهد که "من بلد هستم"، اعتماد به نفس پیدا می‌کند.</p>
+        </div>`
+    },
+    {
+        content: `<h2>Managing Sore Spots</h2><div class="figure-box"><strong>Fig 14.24 Placeholder</strong><p>Illustrating pressure areas and adjustments.</p></div><ul><li>Wear appliance <b>2 days before appointment</b> if sore.</li><li>Ensures the <span class="highlight">red mark</span> is visible for trimming.</li></ul>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">مدیریت زخم‌ها (Sore Spots)</div>
+            <div class="recall-box">
+                <strong>یادآوری:</strong> زخم یا Sore Spot زمانی ایجاد می‌شود که لبه‌های آکریلی دستگاه بیش از حد بلند باشد یا فشار نقطه‌ای به لثه وارد کند.
+            </div>
+            <p><b>اشتباه رایج بیمار:</b> بیمار چون درد دارد، ۳ روز پلاک را نمی‌گذارد و بعد به مطب می‌آید. در این مدت زخم خوب شده و دکتر نمی‌تواند جای دقیق فشار را پیدا کند.</p>
+            <p><b>دستورالعمل:</b> "حتی اگر درد داری، ۲ روز قبل از ویزیت چند ساعت پلاک را بپوش تا جای قرمزی روی لثه بماند و من بتوانم همان‌جا را بتراشم."</p>
+        </div>`
+    },
+    {
+        content: `<h2>The Forsus Appliance</h2><ul><li>Assembled <b>chairside</b> from preformed parts.</li><li>Requires <span class="highlight">heavy archwires</span> for support.</li><li>2 mm of space between spring and stop.</li></ul>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">دستگاه فورسوس (Forsus)</div>
+            <div class="recall-box">
+                <strong>تفاوت با هربرست:</strong> فورسوس یک دستگاه نیمه-ثابت است که شامل یک فنر و میله است. برخلاف هربرست که در لابراتوار ساخته می‌شود، فورسوس را دکتر "کنار صندلی" (Chairside) نصب می‌کند.
+            </div>
+            <p><b>نکته حیاتی:</b> سیم ارتودنسی باید حتماً ضخیم (مثلاً ۱۸*۲۵ استیل) باشد. سیم‌های نازک زیر فشار فنر فورسوس خم می‌شوند و دندان‌ها را بهم می‌ریزند.</p>
+        </div>`
+    },
+    {
+        content: `<h2>Extraoral Force (Headgear)</h2><ul><li>Anchorage components: <b>Headcap vs. Neckstrap</b>.</li><li>High-pull: Superior and distal force.</li><li>Cervical: Inferior and distal force.</li></ul>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">نیروهای خارج دهانی (هدگیر)</div>
+            <div class="recall-box">
+                <strong>تعریف هدگیر:</strong> دستگاهی که از پشت گردن یا بالای سر به عنوان تکیه‌گاه استفاده می‌کند تا فک بالا را به سمت عقب بکشد یا رشد آن را مهار کند.
+            </div>
+            <p><b>High-pull (های-پول):</b> برای صورت‌های کشیده استفاده می‌شود تا دندان‌ها را بالا ببرد.</p>
+            <p><b>Cervical (سرویکال):</b> برای صورت‌های کوتاه استفاده می‌شود چون دندان‌ها را پایین می‌آورد و ارتفاع صورت را زیاد می‌کند.</p>
+        </div>`
+    },
+    {
+        content: `<h2>Center of Resistance</h2><ul><li>Estimated midroot region for a molar.</li><li>Force through CoR = <b>Bodily Movement</b>.</li><li>Force away from CoR = <span class="highlight">Tipping</span>.</li></ul>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">بیومکانیک: مرکز مقاومت</div>
+            <div class="recall-box">
+                <strong>تعریف علمی (CoR):</strong> نقطه‌ای در دندان که اگر نیرو از آن عبور کند، دندان بدون کج شدن حرکت می‌کند (حرکت بدنی یا Bodily). در دندان‌های تک‌ریشه، حدوداً در یک‌سوم تا نصف طول ریشه است.
+            </div>
+            <p>اگر نیروی هدگیر پایین‌تر از این نقطه باشد، دندان "تیپ" (Tipping) می‌شود یعنی تاج عقب می‌رود ولی ریشه جلو می‌ماند.</p>
+        </div>`
+    },
+    {
+        content: `<h2>Vertical Control</h2><ul><li>Crucial for Class II correction.</li><li><b>Downward movement</b> of molars nullifies forward growth.</li><li>Mandible rotates <span class="highlight">downward and backward</span>.</li></ul>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">کنترل عمودی (Vertical Control)</div>
+            <p><b>مفهوم چرخش فک:</b> فک پایین مثل یک درب لولایی عمل می‌کند. اگر دندان‌های عقب (مولرها) بلند شوند، فک پایین به سمت پایین و عقب می‌چرخد (مانند سنگی که لای لولای در گیر کرده باشد).</p>
+            <p>این اتفاق برای درمان کلاس ۲ "فاجعه" است، چون هدف ما جلو آمدن چانه است، نه عقب رفتن آن.</p>
+        </div>`
+    },
+    {
+        content: `<h2>Retention and Relapse</h2><ul><li>Anticipate <b>1-2 mm of relapse</b>.</li><li>Herbst wear: 8-12 months.</li><li>Removable retainer needed in <span class="highlight">mixed dentition</span>.</li></ul>`,
+        notes: `<div class="notes-container">
+            <div class="notes-header">نگهداری و بازگشت (Retention)</div>
+            <div class="recall-box">
+                <strong>تعریف Relapse:</strong> تمایل طبیعی دندان‌ها و فک برای بازگشت به موقعیت زشت قبلی بعد از برداشتن دستگاه.
+            </div>
+            <p><b>استراتژی:</b> همیشه فک را ۱-۲ میلی‌متر بیشتر از نیاز جلو بیاورید (Over-correction) چون کمی از آن حتماً برمی‌گردد.</p>
+            <p>در دوره دندان‌های مختلط، حتماً بعد از دستگاه ثابت، یک پلاک متحرک شبانه بدهید تا نتایج حفظ شود.</p>
+        </div>`
+    }
+];
+
+let currentIndex = 0;
+const slideView = document.getElementById('slide-view');
+const modeToggle = document.getElementById('modeToggle');
+const counter = document.getElementById('counter');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function renderSlides() {
+    slideView.innerHTML = '';
+    const isNotesMode = modeToggle.checked;
+    
+    slideData.forEach((data, index) => {
+        const div = document.createElement('div');
+        div.className = `slide ${index === currentIndex ? 'active' : ''}`;
+        div.innerHTML = isNotesMode ? data.notes : data.content;
+        slideView.appendChild(div);
+    });
+    
+    counter.innerText = `Slide ${currentIndex + 1} / ${slideData.length}`;
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === slideData.length - 1;
+    
+    localStorage.setItem('presentationMode', isNotesMode ? 'notes' : 'content');
+}
+
+modeToggle.addEventListener('change', renderSlides);
+
+nextBtn.addEventListener('click', () => {
+    if (currentIndex < slideData.length - 1) {
+        currentIndex++;
+        renderSlides();
+    }
+});
+
+prevBtn.addEventListener('click', () => {
+    if (currentIndex > 0) {
+        currentIndex--;
+        renderSlides();
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === "ArrowRight") nextBtn.click();
+    if (e.key === "ArrowLeft") prevBtn.click();
+});
+
+// Init
+if (localStorage.getItem('presentationMode') === 'notes') {
+    modeToggle.checked = true;
+}
+renderSlides();
+
+</script>
+</body>
+</html>
