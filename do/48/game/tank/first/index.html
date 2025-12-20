@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Entropy Drifter: Neon Overdrive</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <style>
+        /* CORE UI */
+        body { 
+            margin: 0; overflow: hidden; background-color: #0b001a; 
+            font-family: 'Segoe UI', 'Roboto', sans-serif; 
+            touch-action: none; user-select: none; -webkit-user-select: none;
+        }
+        
+        #game-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+        /* HUD ELEMENTS */
+        .hud-panel {
+            position: absolute; pointer-events: auto;
+            background: rgba(11, 0, 26, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            backdrop-filter: blur(4px);
+            padding: 10px; box-sizing: border-box;
+        }
+
+        #top-bar { top: 0; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0ff; background: linear-gradient(to bottom, #000, transparent); }
+        
+        #timer { font-size: 24px; font-weight: 900; color: #ff0055; text-shadow: 0 0 10px #ff0055; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+        #speed-gauge { font-size: 14px; color: #0ff; text-align: right; }
+        #speed-val { font-size: 28px; font-weight: bold; }
+
+        #task-radar { 
+            position: absolute; top: 70px; left: 10px; width: 200px; 
+            display: flex; flex-direction: column; gap: 5px; 
+        }
+        .radar-blip {
+            font-size: 10px; color: #fff; padding: 4px; 
+            background: rgba(0,0,0,0.5); border-left: 3px solid #555;
+            display: flex; justify-content: space-between;
+        }
+        .radar-blip.active { border-left-color: #0ff; background: rgba(0, 255, 255, 0.1); }
+        .radar-blip.done { opacity: 0.3; text-decoration: line-through; border-left-color: #0f0; }
+
+        /* CONTROLS */
+        #joystick-zone {
+            position: absolute; bottom: 20px; left: 20px;
+            width: 140px; height: 140px;
+            border-radius: 50%;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            pointer-events: auto;
+        }
+        #joystick-puck {
+            position: absolute; top: 50%; left: 50%;
+            width: 50px; height: 50px;
+            margin-left: -25px; margin-top: -25px;
+            background: rgba(0, 255, 255, 0.5);
+            border-radius: 50%;
+            box-shadow: 0 0 15px #0ff;
+            pointer-events: none; transform: translate(0,0);
+        }
+
+        /* RIGHT ACTIONS */
+        .action-btn {
+            position: absolute; width: 70px; height: 70px;
+            border-radius: 50%; border: 2px solid #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 12px; color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+            pointer-events: auto; transition: 0.1s;
+            text-shadow: 0 0 5px #fff;
+        }
+        .action-btn:active { transform: scale(0.9); background: #fff; color: #000; }
+        
+        #btn-boost { bottom: 40px; right: 30px; border-color: #ff0055; color: #ff0055; width: 90px; height: 90px; font-size: 16px; background: rgba(255, 0, 85, 0.1); }
+        #btn-boost:active { background: #ff0055; color: #fff; }
+
+        #btn-cam { bottom: 150px; right: 40px; border-color: #0ff; color: #0ff; }
+        #btn-fire { bottom: 40px; right: 140px; border-color: #ffaa00; color: #ffaa00; display:none; } /* Fire is automatic now or contextual */
+
+        /* TASK MODAL */
+        #task-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 0, 26, 0.95);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 99; pointer-events: auto;
+        }
+        .neon-text { color: #fff; text-shadow: 0 0 10px #0ff, 0 0 20px #0ff; text-align: center; }
+        .timer-big { font-size: 60px; font-weight: 300; margin: 20px 0; color: #fff; font-family: monospace; }
+        .btn-rect {
+            padding: 15px 40px; margin: 10px; background: transparent;
+            border: 2px solid #0ff; color: #0ff; font-size: 18px;
+            text-transform: uppercase; cursor: pointer;
+        }
+        .btn-rect:active { background: #0ff; color: #000; }
+        
+        /* NOTIFICATIONS */
+        #notify-area {
+            position: absolute; top: 30%; left: 50%; transform: translateX(-50%);
+            text-align: center; pointer-events: none;
+        }
+        .notify-msg {
+            font-size: 24px; font-weight: bold; color: #fff;
+            text-shadow: 0 0 10px #ff00ff;
+            opacity: 0; animation: fadeUp 2s forwards;
+        }
+        @keyframes fadeUp {
+            0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+            20% { opacity: 1; transform: translateY(0) scale(1.2); }
+            80% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HUD -->
+    <div id="game-ui">
+        <div id="top-bar" class="hud-panel">
+            <div id="timer">48:00:00</div>
+            <div id="speed-gauge">VELOCITY<br><span id="speed-val">0</span> km/h</div>
+        </div>
+        
+        <div id="task-radar"></div>
+
+        <div id="joystick-zone">
+            <div id="joystick-puck"></div>
+        </div>
+
+        <div id="btn-boost" class="action-btn">NITRO</div>
+        <div id="btn-cam" class="action-btn">VIEW</div>
+        
+        <div id="notify-area"></div>
+    </div>
+
+    <!-- TASK SCREEN -->
+    <div id="task-overlay">
+        <h1 id="task-title" class="neon-text">TASK NAME</h1>
+        <div id="task-timer" class="timer-big">00:00</div>
+        <p style="color:#aaa;">REALITY ANCHOR ENGAGED</p>
+        <div>
+            <button class="btn-rect" onclick="completeTask()">Task Complete</button>
+            <button class="btn-rect" style="border-color:#f05; color:#f05;" onclick="closeTask()">Abort</button>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME CONFIG ---
+        const TASKS = [
+            { id: 1, title: "Register 190 Letter", m: 30, color: 0x00ffff },
+            { id: 2, title: "Thesis Signature", m: 60, color: 0xff00ff },
+            { id: 3, title: "Maliheh Task", m: 30, color: 0xffff00 },
+            { id: 4, title: "Edit Stress Poster", m: 60, color: 0x00ff00 },
+            { id: 5, title: "Prescription Poster", m: 80, color: 0xffaa00 },
+            { id: 6, title: "Endo-Obs Platform", m: 120, color: 0xff0000 },
+            { id: 7, title: "TeleWatch Docs", m: 180, color: 0x0088ff },
+            { id: 8, title: "Najm Website", m: 360, color: 0xaa00ff },
+            { id: 9, title: "A-Gallery Site", m: 240, color: 0xff00aa },
+            { id: 10, title: "Pub Website", m: 60, color: 0x00ffaa }
+        ];
+
+        let state = {
+            deadline: null,
+            tasks: [],
+            admin: false
+        };
+
+        // --- THREE/CANNON VARS ---
+        let scene, camera, renderer, world;
+        let vehicleBody, vehicleMesh, vehicleGroup;
+        let taskMeshes = [];
+        let particles = [];
+        
+        // Input
+        let joyVec = { x: 0, y: 0 }; // x = turn, y = throttle
+        let isBoosting = false;
+
+        // Camera
+        let camMode = 0; // 0: Chase, 1: Cockpit, 2: Drone
+        let camOffset = new THREE.Vector3();
+        let camLook = new THREE.Vector3();
+        
+        // --- INITIALIZATION ---
+        window.onload = init;
+
+        function init() {
+            loadState();
+            initThree();
+            initPhysics();
+            createWorld();
+            createVehicle();
+            createTasks();
+            setupInputs();
+            
+            updateRadar();
+            animate();
+            setInterval(updateGlobalTimer, 1000);
+        }
+
+        function loadState() {
+            const s = localStorage.getItem('entropy_neon_state');
+            if(s) state = JSON.parse(s);
+            else {
+                state.deadline = Date.now() + (48*60*60*1000);
+                state.tasks = TASKS.map(t => ({...t, status: 'pending'}));
+                saveState();
+            }
+        }
+        function saveState() { localStorage.setItem('entropy_neon_state', JSON.stringify(state)); }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0b001a); // Deep purple
+            scene.fog = new THREE.FogExp2(0x0b001a, 0.015);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const amb = new THREE.AmbientLight(0x404040);
+            scene.add(amb);
+            
+            const sun = new THREE.DirectionalLight(0xff00ff, 0.8);
+            sun.position.set(50, 100, 50);
+            sun.castShadow = true;
+            scene.add(sun);
+            
+            const hemi = new THREE.HemisphereLight(0x00ffff, 0xff00ff, 0.4);
+            scene.add(hemi);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth/window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        function initPhysics() {
+            world = new CANNON.World();
+            world.gravity.set(0, -30, 0); // Snappy gravity
+            world.defaultContactMaterial.friction = 0.01; // Slippery for drift
+        }
+
+        function createWorld() {
+            // Infinite Grid Floor (Visual)
+            const grid = new THREE.GridHelper(1000, 200, 0xff00ff, 0x220033);
+            scene.add(grid);
+
+            // Physics Floor
+            const groundBody = new CANNON.Body({ mass: 0 });
+            groundBody.addShape(new CANNON.Plane());
+            groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
+            world.addBody(groundBody);
+
+            // Ambient Particles (Stars/Data)
+            const pGeo = new THREE.BufferGeometry();
+            const pPos = [];
+            for(let i=0; i<1000; i++) {
+                pPos.push((Math.random()-0.5)*800, Math.random()*100, (Math.random()-0.5)*800);
+            }
+            pGeo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
+            const pMat = new THREE.PointsMaterial({color: 0x00ffff, size: 0.5});
+            scene.add(new THREE.Points(pGeo, pMat));
+        }
+
+        function createVehicle() {
+            // Physics: Sphere for smooth movement
+            const radius = 1.5;
+            vehicleBody = new CANNON.Body({
+                mass: 100,
+                position: new CANNON.Vec3(0, 2, 0),
+                linearDamping: 0.5,
+                angularDamping: 0.99 // Lock rotation mostly
+            });
+            vehicleBody.addShape(new CANNON.Sphere(radius));
+            world.addBody(vehicleBody);
+
+            // Visual: Cyber Speeder
+            vehicleGroup = new THREE.Group();
+            
+            // Chassis
+            const chassisGeo = new THREE.BoxGeometry(2, 0.8, 4);
+            const chassisMat = new THREE.MeshStandardMaterial({
+                color: 0x111111, roughness: 0.2, metalness: 0.9
+            });
+            const chassis = new THREE.Mesh(chassisGeo, chassisMat);
+            chassis.castShadow = true;
+            vehicleGroup.add(chassis);
+
+            // Glowing Strips
+            const stripGeo = new THREE.BoxGeometry(2.1, 0.1, 3.8);
+            const stripMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const strip = new THREE.Mesh(stripGeo, stripMat);
+            strip.position.y = 0.2;
+            vehicleGroup.add(strip);
+
+            // Thrusters
+            const thrustGeo = new THREE.CylinderGeometry(0.5, 0.2, 1, 8);
+            thrustGeo.rotateX(Math.PI/2);
+            const thrustMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            
+            const t1 = new THREE.Mesh(thrustGeo, thrustMat); t1.position.set(0.8, 0, 2.2); vehicleGroup.add(t1);
+            const t2 = new THREE.Mesh(thrustGeo, thrustMat); t2.position.set(-0.8, 0, 2.2); vehicleGroup.add(t2);
+
+            // Engine Glow
+            const glowGeo = new THREE.SphereGeometry(0.3);
+            const glowMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+            const g1 = new THREE.Mesh(glowGeo, glowMat); g1.position.set(0.8, 0, 2.6); vehicleGroup.add(g1);
+            const g2 = new THREE.Mesh(glowGeo, glowMat); g2.position.set(-0.8, 0, 2.6); vehicleGroup.add(g2);
+
+            scene.add(vehicleGroup);
+        }
+
+        function createTasks() {
+            state.tasks.forEach((t, i) => {
+                if(t.status === 'done') return;
+
+                const angle = (i / state.tasks.length) * Math.PI * 2;
+                const r = 100 + Math.random() * 50; // Further out for driving
+                const x = Math.cos(angle) * r;
+                const z = Math.sin(angle) * r;
+
+                // Physics Trigger
+                const body = new CANNON.Body({ isTrigger: true });
+                body.addShape(new CANNON.Cylinder(5, 5, 20, 8));
+                body.position.set(x, 0, z);
+                world.addBody(body);
+                // Quick hack: Store metadata on body for collision
+                body.userData = { taskId: i };
+                
+                // Visual: Data Spire
+                const grp = new THREE.Group();
+                grp.position.set(x, 0, z);
+                
+                // Floating Diamond
+                const geo1 = new THREE.OctahedronGeometry(3);
+                const mat1 = new THREE.MeshStandardMaterial({ 
+                    color: t.color, emissive: t.color, emissiveIntensity: 0.5, wireframe: true 
+                });
+                const mesh1 = new THREE.Mesh(geo1, mat1);
+                mesh1.position.y = 8;
+                grp.add(mesh1);
+                
+                // Base Ring
+                const geo2 = new THREE.TorusGeometry(4, 0.2, 16, 32);
+                const mat2 = new THREE.MeshBasicMaterial({ color: t.color });
+                const mesh2 = new THREE.Mesh(geo2, mat2);
+                mesh2.rotation.x = Math.PI/2;
+                mesh2.position.y = 1;
+                grp.add(mesh2);
+
+                // Beam
+                const geo3 = new THREE.CylinderGeometry(0.1, 0.1, 200);
+                const mat3 = new THREE.MeshBasicMaterial({ color: t.color, transparent: true, opacity: 0.3 });
+                const mesh3 = new THREE.Mesh(geo3, mat3);
+                mesh3.position.y = 100;
+                grp.add(mesh3);
+
+                grp.userData = { id: i, floatOffset: Math.random() * 100 };
+                scene.add(grp);
+                taskMeshes.push(grp);
+            });
+            
+            // Collision Event
+            world.addEventListener('beginContact', (e) => {
+                const bA = e.bodyA;
+                const bB = e.bodyB;
+                let trigger = bA.userData?.taskId !== undefined ? bA : (bB.userData?.taskId !== undefined ? bB : null);
+                
+                if (trigger) {
+                    openTask(trigger.userData.taskId);
+                }
+            });
+        }
+
+        // --- CONTROLS ---
+        function setupInputs() {
+            const stick = document.getElementById('joystick-zone');
+            const puck = document.getElementById('joystick-puck');
+            let startX, startY;
+
+            stick.addEventListener('touchstart', e => {
+                const t = e.touches[0];
+                const rect = stick.getBoundingClientRect();
+                startX = rect.left + rect.width/2;
+                startY = rect.top + rect.height/2;
+                updateJoy(t.clientX, t.clientY);
+            });
+
+            stick.addEventListener('touchmove', e => {
+                e.preventDefault(); // Stop scroll
+                updateJoy(e.touches[0].clientX, e.touches[0].clientY);
+            });
+
+            const endJoy = () => {
+                joyVec = { x: 0, y: 0 };
+                puck.style.transform = `translate(0px, 0px)`;
+            };
+            stick.addEventListener('touchend', endJoy);
+
+            function updateJoy(cx, cy) {
+                const maxR = 60;
+                let dx = cx - startX;
+                let dy = cy - startY;
+                const d = Math.sqrt(dx*dx + dy*dy);
+                
+                if(d > maxR) {
+                    dx = (dx/d) * maxR;
+                    dy = (dy/d) * maxR;
+                }
+                
+                puck.style.transform = `translate(${dx}px, ${dy}px)`;
+                
+                // Map to -1 to 1
+                // X = Turn (Left/Right)
+                // Y = Throttle (Up is negative screen Y, so invert)
+                joyVec.x = dx / maxR;
+                joyVec.y = -(dy / maxR); // Up = +1, Down = -1
+            }
+
+            // Right Buttons
+            const btnBoost = document.getElementById('btn-boost');
+            btnBoost.addEventListener('touchstart', (e) => { e.preventDefault(); isBoosting = true; });
+            btnBoost.addEventListener('touchend', (e) => { e.preventDefault(); isBoosting = false; });
+
+            document.getElementById('btn-cam').addEventListener('click', () => {
+                camMode = (camMode + 1) % 3;
+                showNotification(camMode === 0 ? "CHASE CAM" : (camMode === 1 ? "COCKPIT" : "DRONE VIEW"));
+            });
+        }
+
+        // --- GAME LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 1. Physics Engine Step
+            world.step(1/60);
+
+            // 2. Vehicle Logic
+            const speed = vehicleBody.velocity.length();
+            document.getElementById('speed-val').innerText = Math.floor(speed * 3); // Fake km/h
+
+            // Apply Forces based on Input
+            // Forward/Back
+            const fwd = new CANNON.Vec3(0, 0, 1);
+            // Get current rotation
+            const quat = vehicleBody.quaternion;
+            let direction = new CANNON.Vec3(0,0,1);
+            quat.vmult(direction, direction); // Rotate world fwd by body quat
+
+            // Acceleration
+            let forceVal = 0;
+            if (joyVec.y > 0.1) forceVal = 80 * joyVec.y; // Forward
+            if (joyVec.y < -0.1) forceVal = 40 * joyVec.y; // Reverse
+            if (isBoosting) forceVal = 200;
+
+            const force = direction.scale(forceVal);
+            vehicleBody.applyForce(force, vehicleBody.position);
+
+            // Turning (Rotate velocity + torque)
+            // Physics hack: Apply torque for turning
+            if (Math.abs(joyVec.x) > 0.1) {
+                const turnSpeed = speed > 5 ? 30 : 10; // Turn faster when moving
+                // FIX: Manual torque application for Cannon 0.6.2 compatibility
+                // Instead of applyTorque(Vec3), we add to body.torque
+                const torqueY = -joyVec.x * turnSpeed;
+                vehicleBody.torque.y += torqueY;
+                
+                // Bank the visual mesh
+                vehicleGroup.rotation.z = THREE.MathUtils.lerp(vehicleGroup.rotation.z, -joyVec.x * 0.5, 0.1);
+            } else {
+                vehicleGroup.rotation.z = THREE.MathUtils.lerp(vehicleGroup.rotation.z, 0, 0.1);
+            }
+
+            // Sync Visuals
+            vehicleGroup.position.copy(vehicleBody.position);
+            // We separate visual rotation Y from body to allow drift slide visual?
+            // For now sync exactly
+            vehicleGroup.quaternion.copy(vehicleBody.quaternion);
+            // Add Banking visual offset
+            vehicleGroup.rotateZ(-joyVec.x * 0.3); // Local banking
+
+            // 3. Camera Logic
+            let targetPos = vehicleGroup.position.clone();
+            
+            if (camMode === 0) { // Chase
+                // Offset behind car based on rotation
+                const offset = direction.clone().scale(-10); // 10 units behind
+                offset.y = 5; // 5 units up
+                
+                // Dynamic pullback on speed
+                if (speed > 20 || isBoosting) {
+                    offset.scale(1.2);
+                    offset.y += 2;
+                    // Shake
+                    offset.x += (Math.random()-0.5) * 0.2;
+                    offset.y += (Math.random()-0.5) * 0.2;
+                }
+                
+                const desiredPos = targetPos.clone().add(offset);
+                camera.position.lerp(desiredPos, 0.1);
+                camera.lookAt(targetPos.clone().add(direction.scale(5)));
+            } 
+            else if (camMode === 1) { // Cockpit
+                const offset = direction.clone().scale(0.5); // Slightly forward
+                offset.y = 1.2;
+                camera.position.copy(targetPos.clone().add(offset));
+                camera.lookAt(targetPos.clone().add(direction.scale(20)));
+                // Slight tilt with turn
+                camera.rotation.z = -joyVec.x * 0.1;
+            }
+            else if (camMode === 2) { // Drone
+                camera.position.lerp(new THREE.Vector3(targetPos.x, 50, targetPos.z), 0.05);
+                camera.lookAt(targetPos);
+            }
+
+            // 4. Object Animation
+            const time = Date.now() * 0.001;
+            taskMeshes.forEach(m => {
+                m.children[0].rotation.y = time; // Spin diamond
+                m.children[0].rotation.z = Math.sin(time + m.userData.floatOffset) * 0.2;
+                m.children[0].position.y = 8 + Math.sin(time * 2 + m.userData.floatOffset);
+                m.children[1].rotation.z = -time * 2; // Spin ring
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // --- TASK LOGIC ---
+        let activeTask = null;
+        let taskInterval = null;
+
+        function openTask(id) {
+            if (activeTask !== null) return; // Already open
+            activeTask = id;
+            
+            const task = state.tasks[id];
+            document.getElementById('task-overlay').style.display = 'flex';
+            document.getElementById('task-title').innerText = task.title;
+            
+            // Start timer
+            let sec = task.m * 60;
+            const timerEl = document.getElementById('task-timer');
+            timerEl.innerText = fmtTime(sec);
+            
+            taskInterval = setInterval(() => {
+                sec--;
+                timerEl.innerText = fmtTime(sec);
+                if(sec <= 0) clearInterval(taskInterval);
+            }, 1000);
+
+            // Stop car
+            vehicleBody.velocity.set(0,0,0);
+            vehicleBody.angularVelocity.set(0,0,0);
+        }
+
+        function completeTask() {
+            clearInterval(taskInterval);
+            document.getElementById('task-overlay').style.display = 'none';
+            
+            state.tasks[activeTask].status = 'done';
+            saveState();
+            
+            // FX
+            const mesh = taskMeshes.find(m => m.userData.id === activeTask);
+            if(mesh) mesh.visible = false;
+            showNotification("TASK COMPLETE");
+            updateRadar();
+            
+            activeTask = null;
+        }
+
+        function closeTask() {
+            clearInterval(taskInterval);
+            document.getElementById('task-overlay').style.display = 'none';
+            activeTask = null;
+            // Push car back slightly so it doesn't re-trigger immediately
+            vehicleBody.position.y += 2;
+            vehicleBody.velocity.set(0,10,0); // Jump
+        }
+
+        // --- UTILS ---
+        function updateGlobalTimer() {
+            const diff = state.deadline - Date.now();
+            if(diff <= 0) {
+                document.getElementById('timer').innerText = "FAILURE";
+                return;
+            }
+            const h = Math.floor(diff/3600000).toString().padStart(2,'0');
+            const m = Math.floor((diff%3600000)/60000).toString().padStart(2,'0');
+            const s = Math.floor((diff%60000)/1000).toString().padStart(2,'0');
+            document.getElementById('timer').innerText = `${h}:${m}:${s}`;
+        }
+
+        function updateRadar() {
+            const radar = document.getElementById('task-radar');
+            radar.innerHTML = '';
+            state.tasks.forEach(t => {
+                const d = document.createElement('div');
+                d.className = `radar-blip ${t.status === 'done' ? 'done' : ''}`;
+                d.innerHTML = `<span>${t.title}</span>`;
+                radar.appendChild(d);
+            });
+        }
+
+        function showNotification(msg) {
+            const el = document.createElement('div');
+            el.className = 'notify-msg';
+            el.innerText = msg;
+            document.getElementById('notify-area').appendChild(el);
+            setTimeout(() => el.remove(), 2000);
+        }
+
+        function fmtTime(s) {
+            const m = Math.floor(s/60).toString().padStart(2,'0');
+            const ss = (s%60).toString().padStart(2,'0');
+            return `${m}:${ss}`;
+        }
+
+    </script>
+</body>
+</html>
