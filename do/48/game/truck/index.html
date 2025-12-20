@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Toy 4x4: Store Run</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <style>
+        /* CORE UI */
+        body { 
+            margin: 0; overflow: hidden; background-color: #87CEEB; 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            touch-action: none; user-select: none; -webkit-user-select: none;
+        }
+
+        #game-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+        /* HUD */
+        .hud-panel {
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.9);
+            border: 4px solid #FFD700;
+            border-radius: 15px;
+            color: #333;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #FFA500;
+        }
+
+        #top-bar { 
+            position: absolute; top: 10px; left: 10px; right: 10px;
+            display: flex; justify-content: space-between; padding: 10px 20px; 
+            box-sizing: border-box;
+        }
+        
+        #speed-val { font-size: 32px; color: #0066cc; }
+
+        /* CONTROLS - WHEEL */
+        #wheel-zone {
+            position: absolute; bottom: 30px; left: 30px;
+            width: 160px; height: 160px;
+            pointer-events: auto;
+        }
+        #steering-wheel {
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 10px solid #333;
+            background: #666;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transform: rotate(0deg);
+            display: flex; align-items: center; justify-content: center;
+        }
+        #wheel-cap { width: 40px; height: 40px; background: #FFD700; border-radius: 50%; }
+        #wheel-marker { position: absolute; top: 0; width: 10px; height: 20px; background: #ff0000; }
+
+        /* CONTROLS - PEDALS */
+        .pedal {
+            position: absolute; bottom: 30px;
+            width: 80px; height: 130px;
+            border-radius: 10px; border: 3px solid #333;
+            pointer-events: auto; display: flex; align-items: flex-end; justify-content: center;
+            padding-bottom: 15px; color: #fff; font-weight: bold; font-size: 16px;
+            box-shadow: 0 5px 0 #333;
+            transition: transform 0.1s;
+        }
+        .pedal:active { transform: translateY(5px); box-shadow: 0 0 0 #333; }
+        
+        #pedal-gas { right: 30px; background: #44cc44; }
+        #pedal-brake { right: 120px; background: #cc4444; height: 100px; bottom: 45px; }
+
+        /* BUTTONS */
+        .btn-round {
+            position: absolute; width: 60px; height: 60px;
+            border-radius: 50%; border: 3px solid #fff;
+            background: #ffaa00; color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; cursor: pointer; pointer-events: auto;
+            box-shadow: 0 4px 0 #cc8800;
+        }
+        .btn-round:active { transform: translateY(4px); box-shadow: none; }
+        
+        #btn-cam { bottom: 200px; right: 30px; background: #0099ff; border-color: #0066cc; }
+        #btn-reset { bottom: 280px; right: 30px; background: #ff4444; border-color: #cc0000; }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-ui">
+        <div id="top-bar" class="hud-panel">
+            <div>STORE CLOSING: <span style="color:red">48H</span></div>
+            <div><span id="speed-val">0</span> KM/H</div>
+        </div>
+
+        <div id="wheel-zone">
+            <div id="steering-wheel">
+                <div id="wheel-marker"></div>
+                <div id="wheel-cap"></div>
+            </div>
+        </div>
+
+        <div id="pedal-brake" class="pedal">REV</div>
+        <div id="pedal-gas" class="pedal">GAS</div>
+
+        <div id="btn-cam" class="btn-round">VIEW</div>
+        <div id="btn-reset" class="btn-round">RESET</div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const CONFIG = {
+            colors: {
+                floor: 0xffffff,
+                floorCheck: 0xdddddd,
+                wall: 0x2c3e50,
+                ramp: 0xffcc00
+            }
+        };
+
+        // --- VARS ---
+        let scene, camera, renderer, world;
+        let vehicle, chassisBody, wheelMeshes = [];
+        let vehicleMesh;
+        let camMode = 0; 
+        let input = { gas: false, brake: false, steer: 0 };
+        
+        // Physics Objects Arrays
+        let physicsBodies = [];
+        let visualMeshes = [];
+
+        window.onload = init;
+
+        function init() {
+            initThree();
+            initCannon();
+            createEnvironment();
+            createVehicle();
+            setupControls();
+            animate();
+            setInterval(updateUI, 100);
+        }
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 20, 150);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 500);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            const amb = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(amb);
+
+            const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+            dir.position.set(50, 100, 50);
+            dir.castShadow = true;
+            dir.shadow.mapSize.width = 2048;
+            dir.shadow.mapSize.height = 2048;
+            scene.add(dir);
+        }
+
+        function initCannon() {
+            world = new CANNON.World();
+            world.gravity.set(0, -20, 0); // Good heavy gravity
+            world.broadphase = new CANNON.SAPBroadphase(world);
+            world.defaultContactMaterial.friction = 0.2;
+        }
+
+        // --- ENVIRONMENT ---
+        function createEnvironment() {
+            // Floor Physics
+            const groundBody = new CANNON.Body({ mass: 0 });
+            groundBody.addShape(new CANNON.Plane());
+            groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
+            world.addBody(groundBody);
+
+            // Floor Visual (Checkered)
+            const gridSize = 200;
+            const tileSize = 20;
+            const floorCanvas = document.createElement('canvas');
+            floorCanvas.width = 128; floorCanvas.height = 128;
+            const ctx = floorCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,128,128);
+            ctx.fillStyle = '#e0e0e0'; ctx.fillRect(0,0,64,64); ctx.fillRect(64,64,64,64);
+            const tex = new THREE.CanvasTexture(floorCanvas);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(10, 10);
+            tex.magFilter = THREE.NearestFilter;
+
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(gridSize, gridSize),
+                new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8 })
+            );
+            floor.rotation.x = -Math.PI/2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // WALLS (Boundaries)
+            createWall(0, 5, -100, 200, 10, 2); // Back
+            createWall(0, 5, 100, 200, 10, 2);  // Front
+            createWall(-100, 5, 0, 2, 10, 200); // Left
+            createWall(100, 5, 0, 2, 10, 200);  // Right
+
+            // OBSTACLES
+            // Giant Table
+            createTable(0, 0, -20);
+            // Ramp
+            createRamp(20, 0, 0);
+            // Boxes
+            for(let i=0; i<10; i++) {
+                createBox((Math.random()-0.5)*50, 5, (Math.random()-0.5)*50);
+            }
+        }
+
+        function createWall(x, y, z, w, h, d) {
+            const body = new CANNON.Body({ mass: 0, position: new CANNON.Vec3(x, y, z) });
+            body.addShape(new CANNON.Box(new CANNON.Vec3(w/2, h/2, d/2)));
+            world.addBody(body);
+            // Invisible walls usually preferred, but let's add visual to see bounds
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({color: 0x2c3e50}));
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+        }
+
+        function createBox(x, y, z) {
+            const s = 2;
+            const body = new CANNON.Body({ mass: 2, position: new CANNON.Vec3(x, y, z) });
+            body.addShape(new CANNON.Box(new CANNON.Vec3(s/2, s/2, s/2)));
+            world.addBody(body);
+            physicsBodies.push(body);
+
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(s,s,s), new THREE.MeshStandardMaterial({color: 0xcd853f}));
+            mesh.position.set(x,y,z);
+            mesh.castShadow = true;
+            scene.add(mesh);
+            visualMeshes.push(mesh);
+        }
+
+        function createTable(x, y, z) {
+            // Top
+            const body = new CANNON.Body({ mass: 0, position: new CANNON.Vec3(x, 6, z) });
+            body.addShape(new CANNON.Box(new CANNON.Vec3(10, 0.5, 5)));
+            world.addBody(body);
+            
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(20, 1, 10), new THREE.MeshStandardMaterial({color: 0x8B4513}));
+            mesh.position.set(x, 6, z);
+            mesh.castShadow = true; scene.add(mesh);
+            
+            // Legs visual only for perf
+            const legGeo = new THREE.CylinderGeometry(0.5, 0.5, 6);
+            const legMat = new THREE.MeshStandardMaterial({color: 0x8B4513});
+            
+            const p = [[-9,-4], [9,-4], [-9,4], [9,4]];
+            p.forEach(pos => {
+                const leg = new THREE.Mesh(legGeo, legMat);
+                leg.position.set(x+pos[0], 3, z+pos[1]);
+                scene.add(leg);
+                // Physics for leg
+                const lb = new CANNON.Body({mass:0, position: new CANNON.Vec3(x+pos[0], 3, z+pos[1])});
+                lb.addShape(new CANNON.Cylinder(0.5, 0.5, 6, 8));
+                world.addBody(lb);
+            });
+        }
+
+        function createRamp(x, y, z) {
+            const body = new CANNON.Body({ mass: 0, position: new CANNON.Vec3(x, 1.5, z) });
+            body.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -0.4);
+            body.addShape(new CANNON.Box(new CANNON.Vec3(4, 0.5, 6)));
+            world.addBody(body);
+
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(8, 1, 12), new THREE.MeshStandardMaterial({color: 0xffcc00}));
+            mesh.position.copy(body.position);
+            mesh.quaternion.copy(body.quaternion);
+            mesh.castShadow = true; scene.add(mesh);
+        }
+
+        // --- VEHICLE ---
+        function createVehicle() {
+            // Chassis
+            const chassisShape = new CANNON.Box(new CANNON.Vec3(1, 0.5, 2));
+            chassisBody = new CANNON.Body({ mass: 150 });
+            chassisBody.addShape(chassisShape);
+            chassisBody.position.set(0, 2, 0);
+            chassisBody.angularDamping = 0.3; // Allow some spin
+            world.addBody(chassisBody);
+
+            vehicle = new CANNON.RaycastVehicle({
+                chassisBody: chassisBody,
+            });
+
+            const options = {
+                radius: 0.5,
+                directionLocal: new CANNON.Vec3(0, -1, 0),
+                suspensionStiffness: 30,
+                suspensionRestLength: 0.4,
+                frictionSlip: 3,
+                dampingRelaxation: 2.3,
+                dampingCompression: 4.4,
+                maxSuspensionForce: 100000,
+                rollInfluence: 0.01,
+                axleLocal: new CANNON.Vec3(-1, 0, 0),
+                chassisConnectionPointLocal: new CANNON.Vec3(1, 1, 0),
+                maxSuspensionTravel: 0.2,
+                customSlidingRotationalSpeed: -30,
+                useCustomSlidingRotationalSpeed: true
+            };
+
+            // Important: We assume Forward is -Z. 
+            // Wheels: FL, FR, RL, RR
+            options.chassisConnectionPointLocal.set(1, -0.2, -1.2); // Front Left (Z negative is front)
+            vehicle.addWheel(options);
+
+            options.chassisConnectionPointLocal.set(-1, -0.2, -1.2); // Front Right
+            vehicle.addWheel(options);
+
+            options.chassisConnectionPointLocal.set(1, -0.2, 1.2); // Back Left
+            vehicle.addWheel(options);
+
+            options.chassisConnectionPointLocal.set(-1, -0.2, 1.2); // Back Right
+            vehicle.addWheel(options);
+
+            vehicle.addToWorld(world);
+
+            // Visuals
+            const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.5, 16);
+            wheelGeo.rotateZ(Math.PI/2);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            
+            for(let i=0; i<vehicle.wheelInfos.length; i++) {
+                const m = new THREE.Mesh(wheelGeo, wheelMat);
+                // Hubcap
+                const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.52, 8), new THREE.MeshBasicMaterial({color:0xffff00}));
+                hub.rotation.z = Math.PI/2;
+                m.add(hub);
+                scene.add(m);
+                wheelMeshes.push(m);
+            }
+
+            // Chassis Mesh
+            vehicleMesh = new THREE.Group();
+            
+            // Body
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(2.2, 1, 4.4),
+                new THREE.MeshStandardMaterial({ color: 0xFF4500 }) // Orange/Red
+            );
+            vehicleMesh.add(body);
+
+            // Cabin (Offset to back slightly)
+            const cab = new THREE.Mesh(
+                new THREE.BoxGeometry(2, 0.8, 2.5),
+                new THREE.MeshStandardMaterial({ color: 0x222222 })
+            );
+            cab.position.set(0, 0.9, 0.5);
+            vehicleMesh.add(cab);
+
+            // Headlights (Front is -Z)
+            const hl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.1), new THREE.MeshBasicMaterial({color: 0xffffff}));
+            hl.position.set(0.6, 0, -2.2);
+            vehicleMesh.add(hl);
+            const hr = hl.clone(); hr.position.set(-0.6, 0, -2.2);
+            vehicleMesh.add(hr);
+
+            // Taillights
+            const tl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.1), new THREE.MeshBasicMaterial({color: 0xff0000}));
+            tl.position.set(0.6, 0.2, 2.2);
+            vehicleMesh.add(tl);
+            const tr = tl.clone(); tr.position.set(-0.6, 0.2, 2.2);
+            vehicleMesh.add(tr);
+
+            scene.add(vehicleMesh);
+        }
+
+        // --- CONTROLS ---
+        function setupControls() {
+            const wZone = document.getElementById('wheel-zone');
+            const wVis = document.getElementById('steering-wheel');
+            let startX = 0;
+
+            wZone.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
+            wZone.addEventListener('touchmove', e => {
+                e.preventDefault();
+                const dx = e.touches[0].clientX - startX;
+                const angle = Math.max(-90, Math.min(90, dx));
+                wVis.style.transform = `rotate(${angle}deg)`;
+                input.steer = -(angle / 90); // Left turn is Positive for Cannon usually? No, standard is left = positive steering angle.
+                // Actually in Cannon: Positive steer value usually turns wheels left.
+            });
+            wZone.addEventListener('touchend', () => {
+                input.steer = 0; wVis.style.transform = `rotate(0deg)`;
+            });
+
+            document.getElementById('pedal-gas').addEventListener('touchstart', e=>{ e.preventDefault(); input.gas=true; });
+            document.getElementById('pedal-gas').addEventListener('touchend', e=>{ e.preventDefault(); input.gas=false; });
+
+            document.getElementById('pedal-brake').addEventListener('touchstart', e=>{ e.preventDefault(); input.brake=true; });
+            document.getElementById('pedal-brake').addEventListener('touchend', e=>{ e.preventDefault(); input.brake=false; });
+
+            document.getElementById('btn-cam').addEventListener('click', ()=> camMode = (camMode+1)%2 );
+            document.getElementById('btn-reset').addEventListener('click', ()=> {
+                chassisBody.position.set(0,3,0);
+                chassisBody.quaternion.set(0,0,0,1);
+                chassisBody.velocity.set(0,0,0);
+                chassisBody.angularVelocity.set(0,0,0);
+            });
+        }
+
+        // --- MAIN LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = 1/60;
+            world.step(dt);
+
+            // 1. Vehicle Logic
+            const engineForce = 1200;
+            const brakeForce = 50;
+
+            // In Cannon RaycastVehicle, usually applying Negative force to back wheels pushes car "Forward" relative to axle?
+            // Let's test: We defined Front wheels at Z=-1.2.
+            // If we want to move towards -Z, we should apply force.
+            // Trial and Error standard: Negative force usually drives forward in Cannon defaults.
+            // FIX: If users saw it coming towards them previously, I might have had positive force.
+            
+            let force = 0;
+            if (input.gas) force = -engineForce; // Drive Forward (-Z)
+            if (input.brake) force = engineForce; // Drive Backward (+Z)
+
+            // 4WD
+            vehicle.applyEngineForce(force, 0);
+            vehicle.applyEngineForce(force, 1);
+            vehicle.applyEngineForce(force, 2);
+            vehicle.applyEngineForce(force, 3);
+
+            // Steering (Front wheels 0 and 1)
+            vehicle.setSteeringValue(input.steer * 0.5, 0);
+            vehicle.setSteeringValue(input.steer * 0.5, 1);
+
+            // Sync Visuals
+            vehicleMesh.position.copy(chassisBody.position);
+            vehicleMesh.quaternion.copy(chassisBody.quaternion);
+
+            for(let i=0; i<vehicle.wheelInfos.length; i++){
+                vehicle.updateWheelTransform(i);
+                wheelMeshes[i].position.copy(vehicle.wheelInfos[i].worldTransform.position);
+                wheelMeshes[i].quaternion.copy(vehicle.wheelInfos[i].worldTransform.quaternion);
+            }
+
+            // Sync Objects
+            for(let i=0; i<physicsBodies.length; i++){
+                visualMeshes[i].position.copy(physicsBodies[i].position);
+                visualMeshes[i].quaternion.copy(physicsBodies[i].quaternion);
+            }
+
+            // 2. Camera Chase Logic
+            const carPos = vehicleMesh.position;
+            const carQuat = vehicleMesh.quaternion;
+
+            if (camMode === 0) { // CHASE
+                // We want camera behind the car.
+                // Car forward is -Z.
+                // So Behind is +Z.
+                // Offset: (0, 5, 12) in local space.
+                
+                const relativeOffset = new THREE.Vector3(0, 5, 12);
+                const cameraOffset = relativeOffset.applyMatrix4(vehicleMesh.matrixWorld);
+                
+                camera.position.lerp(cameraOffset, 0.1);
+                camera.lookAt(carPos);
+            } else { // DRIVER
+                const driverPos = new THREE.Vector3(0, 1.2, 0.2);
+                driverPos.applyMatrix4(vehicleMesh.matrixWorld);
+                camera.position.copy(driverPos);
+                
+                const lookTarget = new THREE.Vector3(0, 1, -20); // Look far forward (-Z)
+                lookTarget.applyMatrix4(vehicleMesh.matrixWorld);
+                camera.lookAt(lookTarget);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function updateUI() {
+            document.getElementById('speed-val').innerText = Math.abs(Math.floor(vehicle.currentVehicleSpeedKmHour));
+        }
+
+    </script>
+</body>
+</html>
