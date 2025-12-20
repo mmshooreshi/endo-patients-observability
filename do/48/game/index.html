@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Entropy Protocol: Mobile</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <style>
+        /* CORE RESET & LAYOUT */
+        body { 
+            margin: 0; overflow: hidden; background-color: #000; 
+            font-family: 'Courier New', monospace; color: #0ff; 
+            user-select: none; -webkit-user-select: none; 
+            touch-action: none; /* Critical for custom gestures */
+        }
+        
+        #game-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        /* HUD UI */
+        #hud { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            pointer-events: none; z-index: 10;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            box-sizing: border-box;
+        }
+
+        #top-bar { display: flex; justify-content: space-between; padding: 10px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        #global-timer { font-size: 1.5rem; font-weight: bold; color: #ff3333; letter-spacing: 2px; text-shadow: 0 0 5px #f00; }
+        #admin-indicator { font-size: 0.8rem; color: #ffff00; display: none; border: 1px solid #ffff00; padding: 2px 5px; }
+
+        #mission-log { 
+            position: absolute; top: 60px; left: 10px; max-width: 200px; 
+            font-size: 0.7rem; pointer-events: none;
+        }
+        .log-item { background: rgba(0, 20, 40, 0.5); padding: 5px; margin-bottom: 2px; border-left: 3px solid #555; opacity: 0.6; transition: 0.3s; }
+        .log-item.active { opacity: 1; border-color: #0ff; transform: scale(1.02); }
+        .log-item.done { text-decoration: line-through; color: #0f0; border-color: #0f0; opacity: 0.3; }
+
+        /* MOBILE CONTROLS */
+        .touch-zone { pointer-events: auto; position: absolute; }
+        
+        /* Joystick Zone (Left Half) */
+        #stick-zone { bottom: 20px; left: 20px; width: 150px; height: 150px; border: 1px dashed rgba(0, 255, 255, 0.2); border-radius: 50%; }
+        #stick-knob { 
+            width: 50px; height: 50px; background: rgba(0, 255, 255, 0.5); 
+            border-radius: 50%; position: absolute; top: 50px; left: 50px; 
+            box-shadow: 0 0 10px #0ff; pointer-events: none;
+            transition: transform 0.1s;
+        }
+
+        /* Action Buttons (Right) */
+        #btn-brake { position: absolute; bottom: 40px; right: 120px; width: 60px; height: 60px; border: 2px solid #ff3333; border-radius: 50%; background: rgba(50,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #ff3333; }
+        #btn-brake:active { background: #ff3333; color: #fff; }
+        
+        #btn-fire { position: absolute; bottom: 60px; right: 20px; width: 80px; height: 80px; border: 2px solid #0ff; border-radius: 50%; background: rgba(0,50,50,0.5); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #0ff; }
+        #btn-fire:active { background: #0ff; color: #000; }
+
+        /* OVERLAYS */
+        #focus-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95); z-index: 100;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: auto;
+        }
+        #focus-timer { font-size: 4rem; color: #fff; margin: 20px 0; font-variant-numeric: tabular-nums; }
+        
+        button { 
+            background: transparent; border: 2px solid #0ff; color: #0ff; 
+            padding: 15px 30px; font-family: inherit; font-size: 1.2rem; 
+            margin: 10px; text-transform: uppercase; letter-spacing: 2px;
+            touch-action: manipulation;
+        }
+        button:active { background: #0ff; color: #000; }
+        button.danger { border-color: #f00; color: #f00; }
+        button.danger:active { background: #f00; color: #fff; }
+
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            pointer-events: auto;
+        }
+
+        /* GESTURE FEEDBACK STAMPS */
+        .gesture-stamp {
+            position: absolute; font-size: 4rem; font-weight: 900;
+            pointer-events: none; z-index: 500;
+            animation: stampAnim 0.6s ease-out forwards;
+            transform: translate(-50%, -50%);
+        }
+        .stamp-success { color: #0f0; text-shadow: 0 0 20px #0f0; }
+        .stamp-fail { color: #f00; text-shadow: 0 0 20px #f00; font-family: sans-serif; }
+
+        @keyframes stampAnim {
+            0% { transform: translate(-50%, -50%) scale(3) rotate(-20deg); opacity: 0; }
+            30% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.5) rotate(10deg); opacity: 0; }
+        }
+
+        /* XP BAR */
+        #xp-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: #222; }
+        #xp-fill { width: 0%; height: 100%; background: #0ff; box-shadow: 0 0 10px #0ff; transition: width 0.5s; }
+    </style>
+</head>
+<body>
+
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1 style="font-size: 2rem; color: #0ff; text-align: center; margin: 0 20px;">ENTROPY PROTOCOL</h1>
+        <p style="color: #666;">MOBILE CONSTRUCT</p>
+        <div style="margin: 20px; font-size: 0.9rem; color: #aaa; text-align: center;">
+            <p>LEFT THUMB: Fly (Joystick)</p>
+            <p>RIGHT THUMB: Fire / Interact</p>
+            <p>TASK: Dock with Monoliths</p>
+        </div>
+        <button onclick="startGame()">INITIATE</button>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div id="top-bar">
+            <div id="global-timer">48:00:00</div>
+            <div id="admin-indicator">ADMIN ACTIVE</div>
+        </div>
+        <div id="mission-log"></div>
+        
+        <!-- Mobile Controls -->
+        <div id="stick-zone" class="touch-zone">
+            <div id="stick-knob"></div>
+        </div>
+        <div id="btn-brake" class="touch-zone">BRAKE</div>
+        <div id="btn-fire" class="touch-zone">FIRE</div>
+
+        <div id="xp-container"><div id="xp-fill"></div></div>
+    </div>
+
+    <!-- Focus Screen -->
+    <div id="focus-modal">
+        <h2 id="focus-title" style="color:#0ff; text-align:center; padding:0 20px;">TASK</h2>
+        <div id="focus-timer">00:00</div>
+        <p style="color:#aaa; font-size:0.8rem;">ENTROPY SHIELD ACTIVE</p>
+        <button onclick="completeTask()" style="border-color:#0f0; color:#0f0;">COMPLETE</button>
+        <button onclick="abortTask()" class="danger">ABORT</button>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const TASKS = [
+            { id: 1, title: "Register 190 Letter", m: 30, c: 0x00ffff },
+            { id: 2, title: "Thesis (Page 1)", m: 60, c: 0xff00ff },
+            { id: 3, title: "Maliheh Task", m: 30, c: 0xffff00 },
+            { id: 4, title: "Edit Stress Poster", m: 60, c: 0x00ff00 },
+            { id: 5, title: "Prescription Poster", m: 80, c: 0xffaa00 },
+            { id: 6, title: "Endo-Obs Platform", m: 120, c: 0xff0000 },
+            { id: 7, title: "TeleWatch Docs", m: 180, c: 0x0088ff },
+            { id: 8, title: "Najm Website", m: 360, c: 0xaa00ff },
+            { id: 9, title: "A-Gallery Site", m: 240, c: 0xff00aa },
+            { id: 10, title: "Pub Website", m: 60, c: 0x00ffaa }
+        ];
+
+        // --- STATE ---
+        let state = {
+            deadline: null,
+            tasks: [],
+            admin: false
+        };
+
+        // --- ENGINE GLOBALS ---
+        let scene, camera, renderer, world, clock;
+        let shipBody, shipMesh;
+        let taskBodies = [], taskMeshes = [];
+        let particles = [];
+        let raycaster = new THREE.Raycaster();
+        
+        // --- INPUT STATE ---
+        let joystick = { x: 0, y: 0, active: false, originX: 0, originY: 0 };
+        let input = { fire: false, brake: false };
+
+        // --- GESTURE STATE ---
+        // Sequence: Tap, Tap, Swipe, Swipe, Tap, Tap, Tap, Tap
+        // Logic: 2x Tap, 2x Swipe, 4x Tap
+        const ADMIN_SEQUENCE = ['TAP', 'TAP', 'SWIPE', 'SWIPE', 'TAP', 'TAP', 'TAP', 'TAP'];
+        let gestureStep = 0;
+        let gestureTimer = null;
+        let lastTouch = { x: 0, y: 0, time: 0 };
+
+        // --- INIT ---
+        function loadState() {
+            const s = localStorage.getItem('entropy_mobile_state');
+            if (s) {
+                state = JSON.parse(s);
+            } else {
+                state.deadline = Date.now() + (48*60*60*1000);
+                state.tasks = TASKS.map(t => ({...t, status: 'pending'}));
+                saveState();
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('entropy_mobile_state', JSON.stringify(state));
+        }
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            loadState();
+            initThree();
+            initPhysics();
+            createWorld();
+            setupInputs();
+            updateHUD();
+            animate();
+            setInterval(updateTimer, 1000);
+        }
+
+        // --- THREE JS ---
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.015);
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera.position.set(0, 8, 12);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Perf optimization
+            document.body.appendChild(renderer.domElement);
+
+            // Lights
+            scene.add(new THREE.AmbientLight(0x404040));
+            const dl = new THREE.DirectionalLight(0xffffff, 1);
+            dl.position.set(10, 20, 10);
+            scene.add(dl);
+
+            // Stars
+            const starGeo = new THREE.BufferGeometry();
+            const pos = [];
+            for(let i=0; i<800; i++) {
+                pos.push((Math.random()-0.5)*300, (Math.random()-0.5)*300, (Math.random()-0.5)*300);
+            }
+            starGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color:0x888888, size:0.5})));
+
+            // Grid
+            const grid = new THREE.GridHelper(200, 40, 0x222222, 0x111111);
+            scene.add(grid);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        function initPhysics() {
+            world = new CANNON.World();
+            world.gravity.set(0, 0, 0); 
+            world.broadphase = new CANNON.NaiveBroadphase();
+            clock = new THREE.Clock();
+        }
+
+        function createWorld() {
+            // Ship
+            const shipShape = new CANNON.Sphere(1);
+            shipBody = new CANNON.Body({ mass: 5, position: new CANNON.Vec3(0, 2, 0), linearDamping: 0.8, angularDamping: 0.8 });
+            shipBody.addShape(shipShape);
+            world.addBody(shipBody);
+
+            const shipGeo = new THREE.ConeGeometry(0.8, 2, 8);
+            shipGeo.rotateX(Math.PI/2);
+            const shipMat = new THREE.MeshStandardMaterial({color: 0x00ffff, emissive: 0x004444});
+            shipMesh = new THREE.Mesh(shipGeo, shipMat);
+            scene.add(shipMesh);
+
+            // Tasks
+            state.tasks.forEach((t, i) => {
+                if(t.status === 'done') return;
+                
+                const angle = (i / state.tasks.length) * Math.PI * 2;
+                const r = 30 + Math.random() * 10;
+                const x = Math.cos(angle) * r;
+                const z = Math.sin(angle) * r;
+                const size = 1 + (t.m / 60);
+
+                const body = new CANNON.Body({ mass: 0, position: new CANNON.Vec3(x, Math.random()*5, z) });
+                body.addShape(new CANNON.Box(new CANNON.Vec3(size, size*2, size)));
+                world.addBody(body);
+                taskBodies.push(body);
+
+                const mesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(size*2, size*4, size*2),
+                    new THREE.MeshStandardMaterial({color: t.c, roughness: 0.3})
+                );
+                mesh.position.set(x, Math.random()*5, z);
+                mesh.userData = { id: i, type: 'monolith' };
+                scene.add(mesh);
+                taskMeshes.push(mesh);
+            });
+        }
+
+        // --- INPUT & GESTURES ---
+        function setupInputs() {
+            // Joystick
+            const zone = document.getElementById('stick-zone');
+            const knob = document.getElementById('stick-knob');
+            
+            zone.addEventListener('touchstart', e => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = zone.getBoundingClientRect();
+                joystick.active = true;
+                joystick.originX = rect.left + rect.width/2;
+                joystick.originY = rect.top + rect.height/2;
+                updateJoystick(touch.clientX, touch.clientY);
+            }, {passive: false});
+
+            zone.addEventListener('touchmove', e => {
+                e.preventDefault();
+                if(joystick.active) updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
+            }, {passive: false});
+
+            const endJoystick = e => {
+                e.preventDefault();
+                joystick.active = false;
+                joystick.x = 0; joystick.y = 0;
+                knob.style.transform = `translate(0px, 0px)`;
+            };
+            zone.addEventListener('touchend', endJoystick);
+            zone.addEventListener('touchcancel', endJoystick);
+
+            function updateJoystick(cx, cy) {
+                const maxDist = 50;
+                let dx = cx - joystick.originX;
+                let dy = cy - joystick.originY;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if(dist > maxDist) {
+                    dx = (dx/dist) * maxDist;
+                    dy = (dy/dist) * maxDist;
+                }
+                
+                joystick.x = dx / maxDist;
+                joystick.y = dy / maxDist;
+                knob.style.transform = `translate(${dx}px, ${dy}px)`;
+            }
+
+            // Actions
+            const btnFire = document.getElementById('btn-fire');
+            const btnBrake = document.getElementById('btn-brake');
+            
+            btnFire.addEventListener('touchstart', (e) => { e.preventDefault(); input.fire = true; fireLaser(); });
+            btnFire.addEventListener('touchend', (e) => { e.preventDefault(); input.fire = false; });
+            
+            btnBrake.addEventListener('touchstart', (e) => { e.preventDefault(); input.brake = true; });
+            btnBrake.addEventListener('touchend', (e) => { e.preventDefault(); input.brake = false; });
+
+            // Global Gesture Listener (Admin)
+            document.addEventListener('touchstart', e => {
+                if(e.target.tagName === 'BUTTON') return;
+                const t = e.changedTouches[0];
+                lastTouch = { x: t.clientX, y: t.clientY, time: Date.now() };
+            });
+
+            document.addEventListener('touchend', e => {
+                if(e.target.tagName === 'BUTTON') return;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - lastTouch.x;
+                const dy = t.clientY - lastTouch.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const dt = Date.now() - lastTouch.time;
+
+                let type = 'TAP';
+                if(dist > 30 && dt < 400) type = 'SWIPE';
+                
+                processGesture(type, t.clientX, t.clientY);
+            });
+        }
+
+        function processGesture(type, x, y) {
+            clearTimeout(gestureTimer);
+            gestureTimer = setTimeout(() => { gestureStep = 0; }, 2000); // Reset if too slow
+
+            const target = ADMIN_SEQUENCE[gestureStep];
+            
+            if (type === target) {
+                gestureStep++;
+                showStamp(gestureStep, x, y, true);
+                if (gestureStep >= ADMIN_SEQUENCE.length) {
+                    activateAdmin();
+                    gestureStep = 0;
+                }
+            } else {
+                if (gestureStep > 0) showStamp("X", x, y, false);
+                gestureStep = 0;
+            }
+        }
+
+        function showStamp(text, x, y, success) {
+            const el = document.createElement('div');
+            el.className = `gesture-stamp ${success ? 'stamp-success' : 'stamp-fail'}`;
+            el.innerText = text;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 600);
+        }
+
+        function activateAdmin() {
+            state.admin = !state.admin;
+            document.getElementById('admin-indicator').style.display = state.admin ? 'block' : 'none';
+            // Reset Time for demo
+            state.deadline = Date.now() + (48 * 60 * 60 * 1000);
+            saveState();
+        }
+
+        function fireLaser() {
+            // Raycast for selection
+            raycaster.setFromCamera(new THREE.Vector2(0,0), camera); // Center of screen
+            const hits = raycaster.intersectObjects(taskMeshes);
+            
+            // Visual Laser
+            const geo = new THREE.BufferGeometry().setFromPoints([
+                shipMesh.position,
+                shipMesh.position.clone().add(shipMesh.getWorldDirection(new THREE.Vector3()).multiplyScalar(50))
+            ]);
+            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({color: 0x00ff00}));
+            scene.add(line);
+            setTimeout(() => scene.remove(line), 100);
+
+            if(hits.length > 0) {
+                const target = hits[0].object;
+                if(target.userData.type === 'monolith') {
+                    if(shipMesh.position.distanceTo(target.position) < 20) {
+                        openTask(target.userData.id);
+                    } else {
+                        // Just feedback
+                        target.material.emissive.setHex(0xffffff);
+                        setTimeout(() => target.material.emissive.setHex(0x000000), 100);
+                    }
+                }
+            }
+        }
+
+        // --- TASK LOGIC ---
+        let activeTaskIdx = -1;
+        let taskTimerInt = null;
+
+        function openTask(idx) {
+            activeTaskIdx = idx;
+            document.getElementById('focus-modal').style.display = 'flex';
+            document.getElementById('focus-title').innerText = state.tasks[idx].title;
+            
+            let sec = state.tasks[idx].m * 60;
+            const el = document.getElementById('focus-timer');
+            
+            taskTimerInt = setInterval(() => {
+                sec--;
+                const m = Math.floor(sec/60).toString().padStart(2,'0');
+                const s = (sec%60).toString().padStart(2,'0');
+                el.innerText = `${m}:${s}`;
+                if(sec<=0) clearInterval(taskTimerInt);
+            }, 1000);
+        }
+
+        function completeTask() {
+            clearInterval(taskTimerInt);
+            document.getElementById('focus-modal').style.display = 'none';
+            
+            // FX
+            const mesh = taskMeshes[activeTaskIdx];
+            if(mesh) {
+                mesh.visible = false;
+                // Explosion
+                for(let i=0; i<20; i++) {
+                    const p = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.5,0.5,0.5),
+                        new THREE.MeshBasicMaterial({color: 0x00ff00})
+                    );
+                    p.position.copy(mesh.position);
+                    p.position.add(new THREE.Vector3((Math.random()-0.5)*5, (Math.random()-0.5)*5, (Math.random()-0.5)*5));
+                    scene.add(p);
+                    // simple tween removal
+                    setTimeout(()=>scene.remove(p), 1000);
+                }
+            }
+
+            state.tasks[activeTaskIdx].status = 'done';
+            saveState();
+            updateHUD();
+        }
+
+        function abortTask() {
+            clearInterval(taskTimerInt);
+            document.getElementById('focus-modal').style.display = 'none';
+        }
+
+        // --- LOOP ---
+        function updateHUD() {
+            const list = document.getElementById('mission-log');
+            list.innerHTML = '';
+            let completed = 0;
+            let total = 0;
+            state.tasks.forEach(t => {
+                total += t.m;
+                if(t.status === 'done') completed += t.m;
+                
+                const div = document.createElement('div');
+                div.className = `log-item ${t.status === 'done'?'done':''}`;
+                div.innerText = t.title;
+                div.style.borderColor = '#' + t.c.toString(16).padStart(6,'0');
+                list.appendChild(div);
+            });
+            document.getElementById('xp-fill').style.width = (completed/total*100) + '%';
+        }
+
+        function updateTimer() {
+            const diff = state.deadline - Date.now();
+            if(diff < 0) {
+                document.getElementById('global-timer').innerText = "FAILURE";
+                return;
+            }
+            const h = Math.floor(diff/(1000*60*60)).toString().padStart(2,'0');
+            const m = Math.floor((diff%(1000*60*60))/(1000*60)).toString().padStart(2,'0');
+            const s = Math.floor((diff%(1000*60))/1000).toString().padStart(2,'0');
+            document.getElementById('global-timer').innerText = `${h}:${m}:${s}`;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = clock.getDelta();
+
+            // Physics Step
+            world.step(1/60, dt, 3);
+
+            // Controls
+            if(shipBody) {
+                const thrust = state.admin ? 80 : 30; // God mode speed
+                
+                // Joystick input (-1 to 1)
+                // -Y is forward (up)
+                // X is turn
+                
+                if (joystick.active) {
+                    const fwdForce = -joystick.y * thrust;
+                    const turnTorque = -joystick.x * 2; // Inverted X for natural feel? No, -x is Left.
+
+                    // Apply Thrust in Ship Local Z
+                    const localThrust = new CANNON.Vec3(0, 0, fwdForce);
+                    const worldThrust = shipBody.quaternion.vmult(localThrust);
+                    shipBody.applyForce(worldThrust, shipBody.position);
+
+                    // Apply Turn Torque (Yaw)
+                    shipBody.angularVelocity.y = turnTorque;
+                    
+                    // Banking visual
+                    shipMesh.rotation.z = -joystick.x * 0.5; 
+                } else {
+                    // Dampen rotation when stick released
+                    shipBody.angularVelocity.scale(0.9, shipBody.angularVelocity);
+                    shipMesh.rotation.z *= 0.9;
+                }
+
+                if(input.brake) {
+                    shipBody.velocity.scale(0.9, shipBody.velocity);
+                    shipBody.angularVelocity.scale(0.9, shipBody.angularVelocity);
+                }
+
+                // Sync Mesh
+                shipMesh.position.copy(shipBody.position);
+                shipMesh.quaternion.copy(shipBody.quaternion);
+
+                // Camera Follow
+                const relOffset = new THREE.Vector3(0, 6, 15);
+                const offset = relOffset.applyMatrix4(shipMesh.matrixWorld);
+                camera.position.lerp(offset, 0.1);
+                camera.lookAt(shipMesh.position);
+            }
+
+            // Task Idle
+            taskMeshes.forEach(m => {
+                m.rotation.y += 0.005;
+                m.rotation.z += 0.002;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+    </script>
+</body>
+</html>
