@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>FOCUS QUEST — 48H MODE</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ --bg:#0b0e1a;--card:#161b3a;--accent:#7aa2ff;
+ --success:#4caf50;--danger:#ff4d6d;--text:#eef;
+}
+*{box-sizing:border-box}
+body{
+ margin:0;background:radial-gradient(circle at top,var(--card),var(--bg));
+ font-family:"Vazirmatn",sans-serif;color:var(--text);direction:rtl;
+}
+header{text-align:center;padding:20px;font-size:26px;font-weight:700}
+.container{
+ max-width:1100px;margin:auto;padding:20px;
+ display:grid;grid-template-columns:2fr 1fr;gap:20px;
+}
+.panel{
+ background:var(--card);border-radius:18px;padding:20px;
+ box-shadow:0 12px 40px rgba(0,0,0,.5)
+}
+.quest{
+ display:flex;justify-content:space-between;align-items:center;
+ background:#0f1330;padding:14px;border-radius:12px;margin-bottom:10px
+}
+.quest.done{opacity:.4;text-decoration:line-through}
+.quest button{
+ background:var(--accent);border:none;border-radius:8px;
+ padding:8px 14px;font-weight:600;cursor:pointer
+}
+.timer{font-size:38px;text-align:center;margin:10px 0}
+.big-btn{
+ width:100%;padding:14px;font-size:18px;
+ background:var(--success);border:none;border-radius:14px;
+ font-weight:700;cursor:pointer
+}
+.stat{background:#0f1330;padding:12px;border-radius:12px;text-align:center}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.progress{height:8px;background:#000;border-radius:20px;overflow:hidden}
+.progress span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#9cffd0)}
+.log{max-height:200px;overflow:auto;font-size:14px}
+.deadline{
+ text-align:center;font-size:18px;color:#ffb;
+ background:#2a1b1b;padding:10px;border-radius:12px;margin-bottom:10px
+}
+</style>
+</head>
+
+<body>
+
+<header>🎮 FOCUS QUEST — 48H CHALLENGE</header>
+
+<div class="container">
+
+<div class="panel">
+<div class="deadline" id="globalTimer"></div>
+<h3>🗺 مأموریت‌ها</h3>
+<div id="quests"></div>
+<div class="timer" id="timer">00:00</div>
+<button class="big-btn" onclick="startFocus()">▶ شروع تمرکز</button>
+</div>
+
+<div class="panel">
+<h3>👤 وضعیت</h3>
+<div class="stats">
+ <div class="stat">Level<div id="level"></div></div>
+ <div class="stat">XP<div id="xp"></div><div class="progress"><span id="xpBar"></span></div></div>
+ <div class="stat">Gold<div id="gold"></div></div>
+ <div class="stat">Streak<div id="streak"></div></div>
+</div>
+
+<h3 style="margin-top:15px">📜 لاگ</h3>
+<div class="log" id="log"></div>
+</div>
+
+</div>
+
+<script>
+const QUESTS = [
+ {name:"ثبت نامه سامانه ۱۹۰", time:30},
+ {name:"کار پایان‌نامه (برگه اول و امضا)", time:60},
+ {name:"کار ملیحه", time:30},
+ {name:"اصلاح پوستر استرس", time:60},
+ {name:"اصلاح پوستر نسخه‌نویسی", time:80},
+ {name:"پلتفرم endo-obs", time:120},
+ {name:"داکیومنت TeleWatch", time:180},
+ {name:"سایت اگالری", time:240},
+ {name:"سایت نجم", time:360}
+];
+
+let state = JSON.parse(localStorage.getItem("FOCUS_STATE")) || {
+ startTime: Date.now(),
+ level:1,xp:0,gold:0,streak:0,
+ activeQuest:null,remaining:0,done:[]
+};
+
+const END_TIME = state.startTime + 48*60*60*1000;
+
+function save(){localStorage.setItem("FOCUS_STATE",JSON.stringify(state))}
+
+const questsDiv=document.getElementById("quests");
+QUESTS.forEach((q,i)=>{
+ const d=document.createElement("div");
+ d.className="quest"+(state.done.includes(i)?" done":"");
+ d.innerHTML=`<span>🎯 ${q.name} (${q.time}د)</span>
+ <button onclick="selectQuest(${i})">انتخاب</button>`;
+ questsDiv.appendChild(d);
+});
+
+function selectQuest(i){
+ state.activeQuest=i;
+ state.remaining=state.remaining||QUESTS[i].time*60;
+ log(`ماموریت «${QUESTS[i].name}» انتخاب شد`);
+ save();updateTimer();
+}
+
+let interval=null;
+
+function startFocus(){
+ if(interval||state.activeQuest===null)return;
+ interval=setInterval(()=>{
+  state.remaining--;save();updateTimer();
+  if(state.remaining<=0)finishQuest();
+ },1000);
+}
+
+function finishQuest(){
+ clearInterval(interval);interval=null;
+ const gain=QUESTS[state.activeQuest].time;
+ state.xp+=gain;state.gold+=Math.floor(gain/5);
+ state.streak++;state.done.push(state.activeQuest);
+ state.remaining=0;log(`🏆 ${QUESTS[state.activeQuest].name} تمام شد`);
+ if(state.xp>=100){state.xp-=100;state.level++;log("⬆ LEVEL UP")}
+ save();location.reload();
+}
+
+function updateTimer(){
+ const m=String(Math.floor(state.remaining/60)).padStart(2,"0");
+ const s=String(state.remaining%60).padStart(2,"0");
+ document.getElementById("timer").innerText=`${m}:${s}`;
+}
+
+function updateGlobalTimer(){
+ const left=Math.max(0,END_TIME-Date.now());
+ const h=Math.floor(left/3600000);
+ const m=Math.floor((left%3600000)/60000);
+ document.getElementById("globalTimer").innerText=
+ left>0?`⏳ زمان باقی‌مانده کل بازی: ${h}ساعت ${m}دقیقه`:
+ "❌ GAME OVER";
+}
+
+function log(t){
+ const l=document.getElementById("log");
+ const d=document.createElement("div");
+ d.innerText="• "+t;l.prepend(d);
+}
+
+function updateStats(){
+ document.getElementById("level").innerText=state.level;
+ document.getElementById("xp").innerText=state.xp+"/100";
+ document.getElementById("gold").innerText=state.gold;
+ document.getElementById("streak").innerText=state.streak+" 🔥";
+ document.getElementById("xpBar").style.width=state.xp+"%";
+}
+
+updateStats();updateTimer();updateGlobalTimer();
+setInterval(updateGlobalTimer,60000);
+</script>
+
+</body>
+</html>
