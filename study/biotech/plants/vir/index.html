@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrobacterium Virulence Pathway</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.95);
+            --accent-green: #4ade80; /* Signal/Success */
+            --accent-blue: #38bdf8; /* Proteins/Enzymes */
+            --accent-red: #f43f5e; /* Inhibition/Traps */
+            --accent-gold: #facc15; /* Core Concepts */
+            --accent-purple: #c084fc; /* Mnemonics */
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            padding: 12px;
+            font-size: 13.5px;
+            line-height: 1.7;
+            padding-bottom: 60px;
+        }
+
+        /* Highlight Styles */
+        .core { color: var(--accent-gold); font-weight: 700; border-bottom: 1px dotted var(--accent-gold); }
+        .mech { color: var(--accent-green); font-weight: 700; background: rgba(74, 222, 128, 0.1); padding: 0 4px; border-radius: 3px; }
+        .trap { color: var(--accent-red); font-weight: 700; border: 1px solid var(--accent-red); padding: 0 4px; border-radius: 4px; }
+        .enz { color: var(--accent-blue); font-family: 'Consolas', monospace; font-weight: 700; direction: ltr; display: inline-block;}
+        .step { background: rgba(255, 255, 255, 0.05); border-right: 3px solid var(--accent-gold); padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+
+        /* Grid Layout */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .bento-grid { grid-template-columns: repeat(12, 1fr); }
+            .tile-pathway { grid-column: span 12; }
+            .tile-proteins { grid-column: span 8; }
+            .tile-hacks { grid-column: span 4; }
+            .tile-exam { grid-column: span 12; }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        }
+
+        h2 { color: var(--accent-blue); font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+        h3 { color: var(--accent-green); font-size: 1rem; margin: 10px 0; }
+
+        /* Specific Elements */
+        .protein-card {
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-right: 3px solid var(--accent-blue);
+        }
+        
+        .mnem-box {
+            background: rgba(192, 132, 252, 0.1);
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 1px dashed var(--accent-purple);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="bento-grid">
+
+        <article class="card tile-pathway">
+            <h2>🔄 مسیر مولکولی انتقال (The Pathway)</h2>
+            <p style="margin-bottom: 15px; color: var(--text-muted);">
+                این فرآیند دقیقاً زمانی شروع می‌شود که گیاه زخمی شده است.
+            </p>
+            
+
+            <div class="step">
+                <strong>1. مرحله تشخیص (Sensing):</strong><br>
+                گیاه زخمی ترکیبات فنلی مثل <span class="enz">Acetosyringone</span> و قندهای خاص ترشح می‌کند. محیط زخم <span class="trap">اسیدی (pH 5.0-5.5)</span> است.
+                <br>پروتئین <span class="enz">VirA</span> (روی غشای داخلی باکتری) این‌ها را حس می‌کند.
+            </div>
+
+            <div class="step">
+                <strong>2. انتقال پیام (Signal Transduction):</strong><br>
+                <span class="enz">VirA</span> اتوفسفریله می‌شود (فسفات را از ATP می‌گیرد) و سپس فسفات را به <span class="enz">VirG</span> منتقل می‌کند.
+                <br><span class="mech">سیستم دو جزئی (Two-component System):</span> <span class="enz">VirA</span> (کیناز/حسگر) + <span class="enz">VirG</span> (تنظیم‌کننده پاسخ).
+            </div>
+
+            <div class="step">
+                <strong>3. فعال‌سازی رونویسی (Activation):</strong><br>
+                <span class="enz">VirG</span> فسفریله شده، به "جعبه‌های vir" (vir-box) در پروموتور سایر ژن‌های vir متصل شده و رونویسی آن‌ها را روشن می‌کند.
+            </div>
+        </article>
+
+        <article class="card tile-proteins">
+            <h2>🧬 عملکرد دقیق پروتئین‌های Vir</h2>
+            
+            <div class="protein-card">
+                <span class="enz">VirA</span> & <span class="enz">VirG</span>
+                <br>
+                <span class="core">نوع بیان:</span> <span class="mech">ساختمانی (Constitutive)</span>. همیشه در سلول هستند تا محیط را پایش کنند.
+                <br>
+                <span class="core">وظیفه‌:</span> حسگر و فعال‌کننده سیستم. VirA دمای بالای 30 درجه را تحمل نمی‌کند (ترموسنسور است) ← <span class="trap">در دمای >30°C انتقال متوقف می‌شود.</span>
+            </div>
+
+            <div class="protein-card">
+                <span class="enz">VirD (D1 & D2)</span>
+                <br>
+                <span class="core">وظیفه:</span> اندونوکلئاز (برش‌دهنده).
+                <br>
+                <span class="mech">VirD1:</span> توپوایزومراز است (DNA را باز می‌کند).
+                <br>
+                <span class="mech">VirD2:</span> نقش اصلی برش در <span class="enz">Right Border</span> و <span class="enz">Left Border</span>. 
+                <br>🔹 به انتهای '5 رشته T متصل می‌ماند (Covalently attached).
+                <br>🔹 دارای <span class="enz">NLS</span> (سیگنال محلی‌سازی هسته) برای هدایت T-DNA به هسته گیاه.
+            </div>
+
+            <div class="protein-card">
+                <span class="enz">VirE2</span>
+                <br>
+                <span class="core">وظیفه:</span> پروتئین اتصالی به تک‌رشته DNA (<span class="enz">SSB</span>).
+                <br>
+                🔹 T-DNA را مثل پوشش می‌پوشاند تا نوکلئازهای گیاهی آن را تجزیه نکنند.
+                <br>🔹 شکل T-DNA را باریک می‌کند (2nm) تا از کانال رد شود.
+                <br>🔹 دارای <span class="enz">NLS</span> برای کمک به ورود به هسته.
+            </div>
+
+            <div class="protein-card">
+                <span class="enz">VirB Operon (11 ژن)</span>
+                <br>
+                <span class="core">وظیفه:</span> ساخت کانال انتقال (Mating pore).
+                <br>
+                این کمپلکس یک <span class="mech">سیستم ترشحی تیپ ۴ (T4SS)</span> ایجاد می‌کند که از غشای داخلی و خارجی باکتری رد می‌شود. دارای فعالیت ATPآزی (تامین انرژی انتقال).
+            </div>
+
+            <div class="protein-card">
+                <span class="enz">VirC (C1 & C2)</span>
+                <br>
+                <span class="core">وظیفه:</span> متصل به توالی <span class="enz">Overdrive</span> (کنار مرز راست).
+                <br>
+                باعث <span class="mech">افزایش کارایی برش</span> و انتقال می‌شود (Enhancer).
+            </div>
+            
+            <div class="protein-card">
+                <span class="enz">VirF</span> (اختیاری ولی مهم)
+                <br>
+                <span class="core">وظیفه:</span> پس از ورود به گیاه، پروتئین‌های محافظتی (VirE2) را از روی T-DNA برمی‌دارد (Uncoating) تا همانندسازی و تلفیق انجام شود. (از طریق سیستم یوبی‌کوئیتین گیاه).
+            </div>
+        </article>
+
+        <article class="card tile-hacks">
+            <h2>🧠 رمزگردانی (Exam Hacks)</h2>
+            
+            <div class="mnem-box">
+                <span class="enz">VirA</span> = <strong>A</strong>ntenna (آنتن)<br>
+                آنتن سیگنال رو میگیره (حسگر).
+            </div>
+
+            <div class="mnem-box">
+                <span class="enz">VirG</span> = <strong>G</strong>enerator (ژنراتور)<br>
+                ژنراتور برق بقیه سیستم (ژن‌ها) رو روشن می‌کنه.
+            </div>
+
+            <div class="mnem-box">
+                <span class="enz">VirD</span> = <strong>D</strong>ivider (تقسیم‌کننده/برنده)<br>
+                یا D مثل "Do-dune" (دو دونه مرز رو میبره!).
+            </div>
+
+            <div class="mnem-box">
+                <span class="enz">VirB</span> = <strong>B</strong>ridge (پل)<br>
+                پل ارتباطی بین باکتری و گیاه (کانال انتقال).
+            </div>
+
+            <div class="mnem-box">
+                <span class="enz">VirE</span> = <strong>E</strong>nvelope (پاکت نامه)<br>
+                نامه (T-DNA) رو می‌ذاره تو پاکت (پوشش پروتئینی) که سالم برسه.
+            </div>
+
+            <div style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 10px;">
+                <span class="trap">دام تستی مهم:</span>
+                <br>تنها ژن‌هایی که به داخل سلول گیاهی منتقل می‌شوند (فیزیکی):
+                <br>1. <span class="enz">VirD2</span> (متصل به سر DNA)
+                <br>2. <span class="enz">VirE2</span> (پوشش DNA)
+                <br>3. <span class="enz">VirF</span>
+                <br>خودِ <span class="enz">DNAی ژن‌های vir</span> منتقل نمی‌شود! فقط پروتئین‌هایشان کار می‌کنند.
+            </div>
+        </article>
+
+        <article class="card tile-exam">
+            <h2>📝 تست‌های مسیر Vir (Exam Simulator)</h2>
+            
+            <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:10px;">
+                <p><strong>1. کدام پروتئین Vir مسئول جلوگیری از هضم T-DNA در سیتوپلاسم گیاه است؟</strong></p>
+                <details>
+                    <summary>پاسخ</summary>
+                    <div style="color:#cbd5e1; margin-top:5px;">✅ <span class="enz">VirE2</span> (پروتئین SSB پوشاننده).</div>
+                </details>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:10px;">
+                <p><strong>2. توالی Overdrive محل اثر کدام پروتئین‌های Vir است؟</strong></p>
+                <details>
+                    <summary>پاسخ</summary>
+                    <div style="color:#cbd5e1; margin-top:5px;">✅ <span class="enz">VirC1</span> و <span class="enz">VirC2</span> (جهت افزایش کارایی برش).</div>
+                </details>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+                <p><strong>3. نقش VirF در فرآیند انتقال چیست؟</strong></p>
+                <details>
+                    <summary>پاسخ</summary>
+                    <div style="color:#cbd5e1; margin-top:5px;">✅ پروتئولیز (تجزیه) پروتئین‌های پوششی VirE2 و کمپلکس VirD2 برای آزاد شدن DNA جهت همانندسازی/تلفیق.</div>
+                </details>
+            </div>
+
+        </article>
+
+    </div>
+
+</body>
+</html>
