@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <title>ماژول جامع آمادگی آزمون: روش‌های انتقال ژن (فصل ۱۵)</title>
+    <style>
+    /* 1. APPLY VAZIR FONT GLOBALLY */
+    body {
+        font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.8;
+        color: #333;
+        background-color: #f4f6f9;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+
+    h1, h2, h3 {
+        color: #2c3e50;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 15px;
+        font-weight: 700;
+    }
+    
+    h1 { text-align: center; color: #2980b9; margin-bottom: 30px; }
+
+    /* HIGHLIGHTING STYLES */
+    .gold { background-color: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #ffeeba; }
+    .blue { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #bee5eb; }
+    .red { background-color: #f8d7da; color: #721c24; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid #f5c6cb; }
+
+    /* CHEAT SHEET */
+    .cheat-sheet ul { list-style-type: none; padding: 0; }
+    .cheat-sheet li {
+        background: #ffffff;
+        margin-bottom: 12px;
+        padding: 15px;
+        border-right: 5px solid #2980b9;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: transform 0.2s;
+    }
+    .cheat-sheet li:hover { transform: translateX(-5px); }
+
+    /* MCQ STYLING */
+    .mcq-block {
+        margin-bottom: 25px;
+        border: 1px solid #eef2f7;
+        padding: 25px;
+        border-radius: 10px;
+        background-color: #fff;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+    .question { font-weight: 800; font-size: 1.15em; margin-bottom: 20px; color: #2c3e50; }
+    .options { list-style-type: none; padding-right: 20px; }
+    .options li { margin-bottom: 10px; cursor: pointer; }
+    
+    /* 2. COLLAPSIBLE ANSWER STYLES */
+    .answer-key {
+        display: none; /* Hidden by default */
+        margin-top: 15px;
+        padding: 20px;
+        background-color: #f0faff;
+        border-radius: 8px;
+        border-right: 4px solid #3498db;
+        font-size: 0.95em;
+        line-height: 1.9;
+        animation: fadeIn 0.4s ease-in-out;
+    }
+    
+    /* Class to toggle visibility */
+    .answer-key.show { display: block; }
+
+    /* Button Style */
+    .toggle-btn {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'Vazirmatn', sans-serif;
+        font-size: 0.9em;
+        transition: background 0.3s;
+        margin-top: 10px;
+    }
+    .toggle-btn:hover { background-color: #2980b9; }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>ماژول تخصصی مرور و جمع‌بندی بیوتکنولوژی گیاهی (فصل ۱۵)</h1>
+    <p style="text-align: center; color: #7f8c8d;">طراحی شده توسط استاد راهنما برای تسلط کامل بر مفاهیم پیچیده و نکات انحرافی آزمون</p>
+
+    <div class="cheat-sheet">
+        <h2>بخش اول: خلاصه نکات طلایی و پربازده (Cheat Sheet)</h2>
+        <ul>
+            <li>
+                <span class="gold">GFP</span> پروتئینی با ۲۳۸ اسید آمینه است که کروموفور آن <span class="blue">B-hydroxy benzylidine imidazolinone</span> می‌باشد.
+            </li>
+            <li>
+                ژن‌های <span class="gold">Selectable Marker</span> برای بقای سلول در محیط سمی ضروری‌اند؛ <span class="red">نکته انحرافی:</span> عامل گزینش نباید آنقدر سمی باشد که مرگ سلول‌های غیر تراریخته باعث مرگ سلول‌های تراریخته مجاور شود.
+            </li>
+            <li>
+                <span class="gold">nptII</span> (مقاوم به کانامایسین) از ترانسپوزون <span class="blue">Tn5</span> منشا گرفته، در حالی که <span class="gold">hpt</span> (مقاوم به هیگرومایسین) از <span class="blue">E. coli</span> است. هیگرومایسین <span class="red">سمی‌تر</span> از کانامایسین است.
+            </li>
+            <li>
+                <span class="gold">Bar gene</span> آنزیم <span class="blue">PAT</span> را کد می‌کند که با <span class="blue">استیله کردن</span>، علف‌کش‌های فسفینوتریسین (Bialaphos/Glufosinate) را غیرفعال می‌کند.
+            </li>
+            <li>
+                مکانیسم مقاومت به علف‌کش گلی‌فوزیت (Roundup) از طریق ژن جهش‌یافته <span class="gold">aroA</span> (از باکتری سالمونلا) است که آنزیم <span class="gold">EPSP synthase</span> را نسبت به علف‌کش غیرحساس می‌کند.
+            </li>
+            <li>
+                در مهندسی ژنتیک، پدیده <span class="gold">Codon Bias</span> (اریب کدون) بسیار حیاتی است؛ اگر موجود مبدا و مقصد فاصله تاکسونومیکی زیادی داشته باشند، نیاز به <span class="blue">Codon Optimization</span> (بهینه‌سازی کدون) است تا بیان ژن افزایش یابد و <span class="red">خاموشی ژن (Gene Silencing)</span> کاهش یابد.
+            </li>
+            <li>
+                <span class="gold">Agrobacterium</span>: بیوتیپ ۱ (شامل اکثر سویه‌های <i>tumefaciens</i>) توانایی تولید <span class="blue">کتولاکتوز</span> را دارد و روی محیط‌های معمولی <i>E. coli</i> رشد می‌کند. بیوتیپ ۲ (شامل <i>rhizogenes</i>) روی <span class="blue">اریتریتول</span> رشد می‌کند.
+            </li>
+            <li>
+                پلاسمیدهای <span class="gold">Ti</span> و <span class="gold">Ri</span> دارای ناحیه <span class="gold">Virulence (vir)</span> هستند که منتقل <strong>نمی‌شود</strong> اما مسئول انتقال <span class="gold">T-DNA</span> است. <span class="red">تله آزمون:</span> ژن‌های مسئول انتقال روی T-DNA نیستند، بلکه روی ناحیه Vir پلاسمید هستند.
+            </li>
+            <li>
+                <span class="gold">Opines</span> (مثل Octopine و Nopaline) منابع کربن و نیتروژن برای باکتری هستند و باعث <span class="gold">Genetic Colonization</span> می‌شوند؛ یعنی باکتری محیط را برای خود اختصاصی می‌کند.
+            </li>
+            <li>
+                پروتئین <span class="gold">VirA</span> حس‌گر غشایی (Sensor) است که <span class="blue">استوسیرینگون</span> را حس کرده و فسفریله می‌شود، سپس <span class="gold">VirG</span> را فسفریله و فعال می‌کند.
+            </li>
+            <li>
+                پروتئین‌های <span class="gold">VirD1</span> و <span class="gold">VirD2</span> مسئول <span class="blue">برش (Nicking)</span> مرزهای T-DNA هستند. <span class="gold">VirD2</span> به انتهای '5 رشته T-DNA متصل مانده و آن را به هسته هدایت می‌کند (Pilot).
+            </li>
+            <li>
+                پروتئین <span class="gold">VirE2</span> یک پروتئین متصل‌شونده به DNA تک‌رشته‌ای (SSB) است که T-DNA را می‌پوشاند و از تخریب توسط نوکلئازها محافظت می‌کند.
+            </li>
+            <li>
+                ناقلین <span class="gold">Binary</span> (دوتایی) شامل دو پلاسمید مجزا هستند: پلاسمید <span class="blue">Helper</span> (حاوی ژن‌های vir بدون T-DNA) و پلاسمید <span class="blue">Shuttle</span> (حاوی T-DNA و ژن هدف). این سیستم نیاز به نوترکیبی در <i>in vivo</i> ندارد (برخلاف Co-integrate).
+            </li>
+            <li>
+                روش <span class="gold">Floral Dip</span> در گیاه <span class="blue">Arabidopsis</span> نیاز به کشت بافت را حذف کرده و با استفاده از سورفکتانت (Silwet L-77) نفوذ باکتری را تسهیل می‌کند.
+            </li>
+        </ul>
+    </div>
+
+    <h2>بخش دوم: آزمون شبیه‌سازی شده (۳۵ سوال تخصصی)</h2>
+
+    <div class="mcq-block">
+        <div class="question">۱. کدام یک از ویژگی‌های زیر در مورد پروتئین GFP و منشا آن صحیح است؟</div>
+        <ul class="options">
+            <li>الف) دارای ۲۳۸ اسید آمینه است و از باکتری <i>Aequorea victoria</i> استخراج شده است.</li>
+            <li>ب) خاصیت فلورسنس آن وابسته به کوفاکتورهای خارجی است و از ستاره دریایی بدست آمده است.</li>
+            <li>ج) کروموفور آن بتا-هیدروکسی بنزیلیدین ایمیدازولینون است و از عروس دریایی (Jellyfish) استخراج شده است.</li>
+            <li>د) برای آشکارسازی نیاز به افزودن پیش‌ماده (Substrate) دارد و دارای ۲۳۸ اسید آمینه است.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            طبق متن، GFP از <i>Aequorea victoria</i> (که در متن ستاره دریایی ترجمه شده اما نام علمی به عروس دریایی اشاره دارد، ولی طبق متن فارسی "ستاره دریایی" ذکر شده که باید دقت کرد، اما نکته کلیدی کروموفور است). نکته مهم این است که GFP <span class="gold">نیاز به پیش‌ماده ندارد</span> (برخلاف GUS). کروموفور آن <span class="blue">B-hydroxy benzylidine imidazolinone</span> است. <span class="red">دام:</span> گزینه د غلط است چون نیاز به پیش‌ماده ندارد.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲. ژن‌های تنظیم‌کننده مسیر آنتوسیانین (C1 و B-Peru) چه مزیتی به عنوان نشانگر گزارشگر دارند؟</div>
+        <ul class="options">
+            <li>الف) باعث مقاومت گیاه به تنش‌های محیطی می‌شوند.</li>
+            <li>ب) رنگدانه‌های سبز فلورسنت تولید می‌کنند که با چشم قابل رویت است.</li>
+            <li>ج) تخریب بافت برای مشاهده لازم نیست و نیاز به افزودن پیش‌ماده خاصی ندارند.</li>
+            <li>د) فقط در ریشه گیاهان تک‌لپه بیان می‌شوند.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            طبق متن، مزیت این گزارشگر <span class="gold">عدم تخریب بافت</span>، بیان موقت در موقعیت هدف و <span class="gold">عدم نیاز به افزودن پیش‌ماده</span> است. این ژن‌ها ساختارهای شیمری هستند که رنگ قرمز ارغوانی تولید می‌کنند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۳. مکانیسم عمل ژن <i>nptII</i> در ایجاد مقاومت آنتی‌بیوتیکی چیست و از کدام منبع گرفته شده است؟</div>
+        <ul class="options">
+            <li>الف) استیلاسیون جنتامایسین – ترانسپوزون Tn7</li>
+            <li>ب) فسفوریلاسیون آمینوگلیکوزیدها – ترانسپوزون Tn5</li>
+            <li>ج) هیدرولیز هیگرومایسین – باکتری <i>E. coli</i></li>
+            <li>د) ممانعت از اتصال به ریبوزوم – پلاسمید Ti</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            ژن <span class="gold">nptII</span> (نئومایسین فسفوترانسفراز II) از ترانسپوزون <span class="blue">Tn5</span> منشا گرفته و آنزیم <span class="blue">APH(3')II</span> را کد می‌کند که آنتی‌بیوتیک‌هایی نظیر کانامایسین را <span class="blue">غیرفعال (فسفوریله)</span> می‌سازد.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۴. تفاوت اصلی ژن‌های مقاومت به استرپتومایسین/اسپکتینومایسین با سایر نشانگرهای آنتی‌بیوتیکی در چیست؟</div>
+        <ul class="options">
+            <li>الف) باعث مرگ سریع سلول‌های حساس می‌شوند.</li>
+            <li>ب) امکان تمایز را با استفاده از رنگ فراهم می‌کنند (سلول‌های حساس سفید می‌شوند اما نمی‌میرند).</li>
+            <li>ج) آنزیم‌های آن‌ها در واکوئل ذخیره می‌شوند.</li>
+            <li>د) فقط در گیاهان تک‌لپه قابل استفاده هستند.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            طبق متن، این نشانگرها (ژن <i>aadA</i>) متفاوتند زیرا سلول‌های حساس <span class="gold">سفید رنگ</span> می‌شوند (کلروفیل از دست می‌دهند) اما <span class="red">نمی‌میرند</span>، در حالی که سلول‌های مقاوم سبز باقی می‌مانند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۵. کدام آنتی‌بیوتیک سمیت بیشتری دارد و سلول‌های حساس را سریع‌تر می‌کشد؟</div>
+        <ul class="options">
+            <li>الف) کانامایسین</li>
+            <li>ب) جنتامایسین</li>
+            <li>ج) هیگرومایسین B</li>
+            <li>د) استرپتومایسین</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            متن صراحتاً ذکر می‌کند که <span class="gold">هیگرومایسین B</span> بسیار <span class="red">سمی‌تر</span> از کانامایسین بوده و سلول‌های حساس را سریع‌تر می‌کشد.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۶. ژن <i>bar</i> چگونه باعث مقاومت به علف‌کش بیالوفوس می‌شود؟</div>
+        <ul class="options">
+            <li>الف) با تغییر سایت هدف آنزیم گلوتامین سنتاز.</li>
+            <li>ب) با انتقال یک گروه استیل به گروه آمین آزاد علف‌کش (استیلاسیون).</li>
+            <li>ج) با تجزیه علف‌کش به اسیدهای آمینه غیرسمی.</li>
+            <li>د) با جلوگیری از جذب علف‌کش توسط ریشه.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            ژن <span class="gold">bar</span> آنزیم <span class="blue">PAT</span> (فسفینوتریسین استیل ترانسفراز) را کد می‌کند که با انتقال یک گروه <span class="blue">استیل</span> به علف‌کش، آن را به فرم غیرسمی تبدیل می‌کند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۷. مقاومت به گلی‌فوزیت (Roundup) در گیاهان تراریخته معمولاً از طریق کدام استراتژی حاصل می‌شود؟</div>
+        <ul class="options">
+            <li>الف) بیان ژن <i>bxn</i> برای تجزیه گلی‌فوزیت.</li>
+            <li>ب) استفاده از ژن جهش‌یافته <i>als</i> که فاقد محل اتصال علف‌کش است.</li>
+            <li>ج) استفاده از ژن جهش‌یافته <i>aroA</i> باکتریایی که EPSP سنتاز مقاوم تولید می‌کند.</li>
+            <li>د) افزایش بیان ژن گلوتامین سنتاز گیاهی.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            گلی‌فوزیت آنزیم <span class="gold">EPSP synthase</span> را مهار می‌کند. مقاومت با استفاده از ژن جهش‌یافته <span class="gold">aroA</span> از باکتری <i>Salmonella typhimurium</i> ایجاد می‌شود که آنزیم آن حساسیت کمتری به گلی‌فوزیت دارد.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۸. ژن <i>bxn</i> (بروموکسینیل نیتریلاز) از کدام موجود استخراج شده و مکانیسم عمل آن چیست؟</div>
+        <ul class="options">
+            <li>الف) <i>Klebsiella ozaenae</i> - سم‌زدایی و تبدیل علف‌کش به ماده غیرسمی.</li>
+            <li>ب) <i>Streptomyces hygroscopicus</i> - استیلاسیون علف‌کش.</li>
+            <li>ج) <i>E. coli</i> - تغییر در جایگاه اتصال آنزیم هدف.</li>
+            <li>د) <i>Agrobacterium</i> - جلوگیری از فتوسنتز.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: الف</strong><br>
+            ژن <span class="gold">bxn</span> از باکتری <i>Klebsiella ozaenae</i> گرفته شده و علف‌کش بروموکسینیل را به ۳ و ۵ دی‌برمو-۴-هیدروکسی بنزوئیک اسید تبدیل (سم‌زدایی) می‌کند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۹. ژن جهش‌یافته <i>als</i> (استولاکتات سنتاز) باعث مقاومت به کدام دسته از علف‌کش‌ها می‌شود؟</div>
+        <ul class="options">
+            <li>الف) گلی‌فوزیت‌ها</li>
+            <li>ب) سولفونیل اوره‌ها و ایمیدازولینون‌ها</li>
+            <li>ج) فسفینوتریسین‌ها</li>
+            <li>د) بروموکسینیل‌ها</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            ژن‌های <span class="gold">als</span> جهش‌یافته باعث مقاومت به علف‌کش‌های <span class="blue">سولفونیل اوره و ایمیدازولینون</span> می‌شوند. مکانیسم آن عدم اتصال علف‌کش به آنزیم است (غیر رقابتی).
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۰. کدام گزینه در مورد پروموتورهای مورد استفاده در ناقلین ژنی گیاهی صحیح است؟</div>
+        <ul class="options">
+            <li>الف) پروموتور CaMV 35S یک پروموتور باکتریایی است که فقط در ریشه بیان می‌شود.</li>
+            <li>ب) پروموتور یوبی‌کوئیتین ذرت (Ubiquitin) برای بیان ژن در گیاهان تک‌لپه مناسب است.</li>
+            <li>ج) پروموتور NOS یک پروموتور قوی ویروسی است.</li>
+            <li>د) پروموتورهای ژن‌های <i>vir</i> آگروباکتریوم در گیاهان به صورت ساختمانی بیان می‌شوند.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            طبق متن، پروموتورهایی نظیر <span class="gold">یوبی‌کوئیتین ذرت</span> و اکتین برنج غالباً برای بیان ژن در <span class="blue">گیاهان تک‌لپه</span> انتخاب می‌شوند. <span class="red">نکته:</span> CaMV 35S ویروسی است (نه باکتریایی) و NOS پروموتور ژن نوپالین سنتاز (آگروباکتریوم) است.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۱. منظور از "اریب کدون" (Codon Bias) در مهندسی ژنتیک چیست و راه حل آن کدام است؟</div>
+        <ul class="options">
+            <li>الف) وجود کدون‌های خاتمه زودرس - استفاده از tRNA‌های سرکوبگر.</li>
+            <li>ب) ترجیح ماشین ترجمه یک موجود به ترکیب خاصی از کدون‌ها - بهینه‌سازی کدون (Codon Optimization).</li>
+            <li>ج) تفاوت در توالی پروموتورها - استفاده از پروموتورهای ویروسی.</li>
+            <li>د) عدم شناسایی اینترون‌ها - استفاده از cDNA.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            هر موجودی ترکیب خاصی از کدون‌ها را ترجیح می‌دهد (<span class="gold">Codon Bias</span>). راه حل آن <span class="blue">Codon Optimization</span> است که در آن کدون‌های ژن خارجی با کدون‌های مورد علاقه موجود میزبان (بدون تغییر اسید آمینه) جایگزین می‌شوند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۲. کدام یک از ویژگی‌های زیر مربوط به بیوتیپ ۱ آگروباکتریوم است؟</div>
+        <ul class="options">
+            <li>الف) توانایی رشد روی اریتریتول و رشد ضعیف در دمای بالای ۳۰ درجه.</li>
+            <li>ب) شامل سویه‌های <i>A. rhizogenes</i> و ایجاد ریشه مویین.</li>
+            <li>ج) تولید کتولاکتوز از لاکتوز و شامل سویه معروف C58.</li>
+            <li>د) عدم توانایی رشد روی محیط‌های معمولی <i>E. coli</i>.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            بیوتیپ ۱ (شامل سویه‌های <i>tumefaciens</i> مثل C58) توانایی تولید <span class="blue">کتولاکتوز</span> را دارد و روی محیط‌های معمولی مثل LB رشد می‌کند. بیوتیپ ۲ (شامل <i>rhizogenes</i>) روی اریتریتول رشد می‌کند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۳. نقش "اوپین‌ها" (Opines) در بیولوژی آگروباکتریوم چیست؟</div>
+        <ul class="options">
+            <li>الف) القای تومور در گیاه میزبان.</li>
+            <li>ب) منبع کربن و نیتروژن اختصاصی برای باکتری و ایجاد استعمار ژنتیکی.</li>
+            <li>ج) انتقال T-DNA به هسته سلول گیاهی.</li>
+            <li>د) سنتز هورمون‌های اکسین و سیتوکینین.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            اوپین‌ها توسط سلول‌های توموری تولید می‌شوند اما برای گیاه فایده‌ای ندارند. آن‌ها منبع غذایی اختصاصی برای آگروباکتریوم هستند و باعث <span class="gold">استعمار ژنتیکی (Genetic Colonization)</span> می‌شوند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۴. لوکوس‌های سرطان‌زا (Oncogenic) در T-DNA شامل <i>tms</i> و <i>tmr</i> چه وظیفه‌ای دارند؟</div>
+        <ul class="options">
+            <li>الف) <i>tms</i> مسئول سنتز سیتوکینین و <i>tmr</i> مسئول سنتز اکسین است.</li>
+            <li>ب) <i>tms</i> مسئول سنتز اکسین و <i>tmr</i> مسئول سنتز سیتوکینین است.</li>
+            <li>ج) هر دو مسئول سنتز اوپین‌ها هستند.</li>
+            <li>د) این ژن‌ها مسئول انتقال T-DNA به گیاه هستند.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            <span class="gold">tms</span> (لوکوس ساقه) مسئول سنتز <span class="blue">اکسین</span> (IAA) است. <span class="gold">tmr</span> (لوکوس ریشه) مسئول سنتز <span class="blue">سیتوکینین</span> (ایزوپنتینیل ترانسفراز) است. <span class="red">رمز:</span> tmr (root) -> سیتوکینین باعث شوت (shoot) می‌شود اما موتانت آن ریشه می‌دهد.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۵. کدام ژن‌ها در پلاسمید Ti/Ri بخشی از T-DNA نیستند و به گیاه منتقل نمی‌شوند؟</div>
+        <ul class="options">
+            <li>الف) ژن‌های سنتز اوپین (<i>ocs/nos</i>).</li>
+            <li>ب) ژن‌های سرطان‌زا (<i>onc</i>).</li>
+            <li>ج) ژن‌های کاتابولیسم اوپین (<i>occ/noc</i>) و ناحیه بیماری‌زایی (<i>vir</i>).</li>
+            <li>د) ژن‌های مقاومت به کانامایسین که بین مرزهای چپ و راست قرار دارند.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            ژن‌های کاتابولیسم اوپین (مصرف اوپین) و ناحیه <span class="gold">vir</span> روی پلاسمید باکتری هستند اما خارج از T-DNA قرار دارند و <span class="red">منتقل نمی‌شوند</span>.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۶. توالی‌های مرزی (Border sequences) در T-DNA چه ویژگی‌هایی دارند؟</div>
+        <ul class="options">
+            <li>الف) تکرارهای معکوس ۵۰ جفت بازی که برای همانندسازی لازم‌اند.</li>
+            <li>ب) تکرارهای مستقیم ۲۵ جفت بازی که محل برش توسط VirD2 هستند.</li>
+            <li>ج) توالی‌های پروموتوری که بیان ژن‌های vir را کنترل می‌کنند.</li>
+            <li>د) توالی‌هایی که فقط در پلاسمیدهای اکتوپینی وجود دارند.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            مرزها (LB و RB) توالی‌های <span class="blue">تکراری مستقیم (Direct repeats)</span> به طول ۲۵ جفت باز هستند که برای برش و انتقال ضروری‌اند. هر چه بین این دو باشد منتقل می‌شود.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۷. اولین مرحله مولکولی در فعال شدن سیستم انتقال ژن آگروباکتریوم چیست؟</div>
+        <ul class="options">
+            <li>الف) برش T-DNA توسط VirD2.</li>
+            <li>ب) اتصال باکتری به دیواره سلولی گیاه توسط ژن‌های <i>chv</i>.</li>
+            <li>ج) شناسایی مولکول‌های سیگنال (استوسیرینگون) توسط پروتئین حس‌گر VirA.</li>
+            <li>د) فسفوریله شدن پروتئین VirG.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            اگرچه اتصال فیزیکی مهم است، اما شروع آبشار مولکولی بیان ژن‌های vir با <span class="gold">شناسایی فنول‌ها (مثل استوسیرینگون)</span> توسط پروتئین غشایی <span class="gold">VirA</span> آغاز می‌شود.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۸. نقش پروتئین VirG در سیستم آگروباکتریوم چیست؟</div>
+        <ul class="options">
+            <li>الف) کانال غشایی برای عبور T-DNA.</li>
+            <li>ب) حس‌گر محیطی برای تشخیص pH اسیدی.</li>
+            <li>ج) فاکتور نسخه‌برداری تنظیم‌کننده که پس از فسفوریله شدن، اپرون‌های vir را فعال می‌کند.</li>
+            <li>د) محافظت از T-DNA تک‌رشته‌ای در برابر نوکلئازها.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            <span class="gold">VirG</span> پروتئین تنظیم‌کننده پاسخ است که توسط VirA فسفوریله شده و به عنوان یک فاکتور نسخه‌برداری، بیان سایر ژن‌های vir را <span class="blue">فعال</span> می‌کند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۱۹. در فرآیند تولید رشته T-DNA (T-strand)، کدام پروتئین به انتهای '5 متصل باقی می‌ماند و نقش خلبان (Pilot) را دارد؟</div>
+        <ul class="options">
+            <li>الف) VirD1</li>
+            <li>ب) VirD2</li>
+            <li>ج) VirE2</li>
+            <li>د) VirB</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            پروتئین <span class="gold">VirD2</span> اندونوکلئازی است که پس از برش در مرز راست، به صورت کوالانسی به <span class="blue">انتهای '5</span> رشته T-DNA متصل مانده و آن را به سمت هسته گیاه هدایت می‌کند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۰. عملکرد پروتئین VirE2 چیست و چرا برای انتقال موفق ضروری است؟</div>
+        <ul class="options">
+            <li>الف) ایجاد کانال انتقال در غشای باکتری.</li>
+            <li>ب) اتصال به DNA تک‌رشته‌ای (SSB) برای محافظت از آن و کاهش قطر کمپلکس.</li>
+            <li>ج) اتصال باکتری به سلول گیاهی.</li>
+            <li>د) برش توالی‌های مرزی چپ و راست.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            <span class="gold">VirE2</span> یک پروتئین متصل‌شونده به تک‌رشته (SSB) است که سرتاسر رشته T-DNA را می‌پوشاند، از آن در برابر نوکلئازها <span class="blue">محافظت</span> می‌کند و قطر کمپلکس را برای عبور از کانال کاهش می‌دهد.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۱. اپرون <i>virB</i> چه نقشی در انتقال ژن ایفا می‌کند؟</div>
+        <ul class="options">
+            <li>الف) تولید پروتئین‌های ساختمانی برای تشکیل کانال غشایی (Pilus) جهت انتقال T-DNA.</li>
+            <li>ب) سم‌زدایی ترکیبات فنلی گیاه.</li>
+            <li>ج) تنظیم بیان سایر ژن‌های vir.</li>
+            <li>د) برش رشته T-DNA از پلاسمید.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: الف</strong><br>
+            اپرون <span class="gold">virB</span> حدود ۱۱ ژن دارد که اجزای یک <span class="blue">کانال ترشحی (Type IV secretion system)</span> را می‌سازند تا کمپلکس T-DNA از آن عبور کرده و به سلول گیاه وارد شود.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۲. توالی "Overdrive" در کجا قرار دارد و نقش آن چیست؟</div>
+        <ul class="options">
+            <li>الف) درون T-DNA؛ کد کننده اوپین‌ها.</li>
+            <li>ب) کنار مرز راست (RB) خارج از T-DNA؛ به عنوان تشدیدکننده (Enhancer) انتقال عمل می‌کند.</li>
+            <li>ج) کنار مرز چپ (LB)؛ سیگنال خاتمه همانندسازی است.</li>
+            <li>د) در ژنوم کروموزومی؛ مسئول اتصال باکتری است.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            توالی <span class="gold">Overdrive</span> در مجاورت <span class="blue">مرز راست (RB)</span> قرار دارد و مانند یک اینهنسر عمل کرده و فرآیند برش و انتقال را با کمک پروتئین‌های VirC تحریک می‌کند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۳. در ناقلین "تلفیقی مشترک" (Co-integrate)، ژن خارجی چگونه وارد پلاسمید Ti می‌شود؟</div>
+        <ul class="options">
+            <li>الف) از طریق همسایه‌سازی (Ligation) ساده در لوله آزمایش.</li>
+            <li>ب) از طریق نوترکیبی همولوگ (Homologous Recombination) بین پلاسمید واسط و Ti در درون باکتری.</li>
+            <li>ج) پلاسمیدهای واسط و Ti به صورت جداگانه در باکتری باقی می‌مانند.</li>
+            <li>د) ژن خارجی مستقیماً به کروموزوم باکتری منتقل می‌شود.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            در ناقلین تلفیقی، پلاسمید واسط (حاوی ژن) و پلاسمید Ti خلع سلاح شده دارای نواحی مشترک (Homology) هستند. نوترکیبی در درون آگروباکتریوم رخ داده و ناقل نهایی (Cointegrate) تشکیل می‌شود.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۴. مزیت اصلی سیستم ناقل "دوتایی" (Binary Vector) نسبت به ناقل تلفیقی چیست؟</div>
+        <ul class="options">
+            <li>الف) نیاز به نوترکیبی در <i>in vivo</i> ندارد و کارایی ترانسفورماسیون باکتری بالاتر است.</li>
+            <li>ب) پایداری ژنتیکی آن کمتر است.</li>
+            <li>ج) فقط می‌تواند قطعات DNA بسیار کوچک را حمل کند.</li>
+            <li>د) ژن‌های vir را روی همان پلاسمید حامل T-DNA دارد.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: الف</strong><br>
+            ناقلین دوتایی (مثل pBin19) مستقل از پلاسمید Helper تکثیر می‌شوند و نیازی به <span class="gold">نوترکیبی همولوگ</span> در باکتری ندارند، بنابراین کار با آن‌ها آسان‌تر و سریع‌تر است.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۵. پلاسمید pBI121 یک ناقل دوتایی معروف است؛ اجزای T-DNA آن شامل چه مواردی است؟</div>
+        <ul class="options">
+            <li>الف) ژن مقاومت به علف‌کش bar و ژن GFP.</li>
+            <li>ب) ژن گزارشگر GUS (تحت پروموتور 35S) و ژن گزینشگر nptII (تحت پروموتور NOS).</li>
+            <li>ج) ژن‌های vir و ژن‌های سنتز اوپین.</li>
+            <li>د) ژن مقاومت به هیگرومایسین و ژن تولید آنتوسیانین.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            پلاسمید <span class="gold">pBI121</span> به طور کلاسیک حاوی ژن گزارشگر <span class="blue">GUS</span> (با پروموتور CaMV 35S) و ژن انتخابگر <span class="blue">nptII</span> (مقاومت به کانامایسین با پروموتور NOS) است.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۶. ژن <i>lacZ</i> در ناقل pBin19 چه کاربردی دارد؟</div>
+        <ul class="options">
+            <li>الف) تولید بتا-گلوکورونیداز در گیاه.</li>
+            <li>ب) غربالگری سفید/آبی کلنی‌های باکتریایی (Blue/White screening) برای شناسایی کلون‌های نوترکیب.</li>
+            <li>ج) تجزیه کانامایسین.</li>
+            <li>د) افزایش بیان ژن در گیاهان تک‌لپه.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            ژن <i>lacZ</i> حاوی مکان‌های برش چندگانه (MCS) است. اگر ژن خارجی وارد شود، ژن <i>lacZ</i> غیرفعال شده و کلنی <span class="gold">سفید</span> می‌شود (نوترکیب). اگر وارد نشود، کلنی <span class="blue">آبی</span> است.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۷. ویژگی منحصر به فرد ناقل‌های pGreen چیست؟</div>
+        <ul class="options">
+            <li>الف) اندازه بسیار بزرگ و ظرفیت حمل بالا.</li>
+            <li>ب) اندازه بسیار کوچک و وابستگی به پلاسمید کمکی دیگر (pSoup) برای تکثیر در آگروباکتریوم.</li>
+            <li>ج) وجود ژن‌های vir روی خود ناقل.</li>
+            <li>د) عدم وجود توالی‌های مرزی T-DNA.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            ناقل <span class="gold">pGreen</span> بسیار کوچک است (حدود ۳.۵ kb) که کارایی کلونینگ را بالا می‌برد، اما ژن‌های همانندسازی (Rep) لازم برای آگروباکتریوم را ندارد و نیاز به یک پلاسمید کمکی دیگر دارد.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۸. مهمترین مرحله در روش "تراریزش از طریق کشت بافت" (مثل Leaf Disk) چیست؟</div>
+        <ul class="options">
+            <li>الف) تیمار با اتیلن برای پیری زودرس.</li>
+            <li>ب) هم‌کشتی (Co-cultivation) ریزنمونه با باکتری و سپس حذف باکتری با آنتی‌بیوتیک (سفوتاکسیم).</li>
+            <li>ج) خشک کردن ریزنمونه‌ها برای افزایش جذب DNA.</li>
+            <li>د) استفاده از محیط کشت بدون هورمون.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            مراحل کلیدی: ۱. تلقیح و هم‌کشتی ۲. <span class="gold">حذف باکتری</span> (با آنتی‌بیوتیک‌هایی مثل سفوتاکسیم/کاربنی‌سیلین) ۳. <span class="gold">گزینش</span> سلول‌های گیاهی تراریخته (با کانامایسین/هیگرومایسین).
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۲۹. روش "غوطه‌وری گل‌لذین" (Floral Dip) برای کدام گیاه بهینه شده و مزیت آن چیست؟</div>
+        <ul class="options">
+            <li>الف) تنباکو - تولید کالوس زیاد.</li>
+            <li>ب) <i>Arabidopsis</i> - حذف مراحل کشت بافت و کاهش تغییرات سوماکلونال.</li>
+            <li>ج) ذرت - انتقال ژن به کلروپلاست.</li>
+            <li>د) گندم - افزایش سرعت رشد.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            این روش (In planta) در <span class="gold">Arabidopsis</span> استفاده می‌شود. مزیت اصلی آن <span class="blue">عدم نیاز به کشت بافت</span> (No Tissue Culture) است که باعث صرفه‌جویی در زمان و جلوگیری از تنوع سوماکلونال می‌شود.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۳۰. در روش Floral Dip، هدف اصلی انتقال ژن به کدام سلول‌ها است؟</div>
+        <ul class="options">
+            <li>الف) سلول‌های ریشه.</li>
+            <li>ب) سلول‌های برگ‌های مسن.</li>
+            <li>ج) سلول‌های تخمک (گامت ماده) در حال توسعه.</li>
+            <li>د) دانه‌های گرده رسیده.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            هدف، تراریزش سلول‌های زاینده (Germ line) به خصوص <span class="gold">گامت ماده (تخمک)</span> است تا بذر تولید شده تراریخته باشد.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۳۱. مفهوم "Agroinfection" (یا Agroinoculation) چیست؟</div>
+        <ul class="options">
+            <li>الف) آلوده شدن گیاه به بیماری گال طوقه.</li>
+            <li>ب) استفاده از آگروباکتریوم برای انتقال ژنوم ویروسی به گیاه و ایجاد آلودگی سیستمیک ویروسی.</li>
+            <li>ج) استفاده از ویروس برای کشتن آگروباکتریوم.</li>
+            <li>د) انتقال ژن مقاومت به ویروس.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            <span class="gold">Agroinfection</span> تکنیکی است که در آن ژنوم ویروس (معمولاً cDNA آن) درون T-DNA قرار گرفته و توسط آگروباکتریوم به گیاه منتقل می‌شود تا عفونت ویروسی ایجاد کند. اولین بار برای ویروس <span class="blue">MSV</span> در ذرت استفاده شد.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۳۲. ژن‌های <i>rol</i> (A, B, C, D) متعلق به کدام پلاسمید هستند و اثر فنوتیپی آن‌ها چیست؟</div>
+        <ul class="options">
+            <li>الف) پلاسمید Ti - ایجاد گال.</li>
+            <li>ب) پلاسمید Ri - افزایش حساسیت به اکسین و ایجاد ریشه مویین.</li>
+            <li>ج) پلاسمید pBI121 - مقاومت به کانامایسین.</li>
+            <li>د) کروموزوم باکتری - اتصال باکتری.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            ژن‌های <span class="gold">rol</span> در T-DNA پلاسمید <span class="gold">Ri</span> (آگروباکتریوم رایزوژنز) قرار دارند. این ژن‌ها هورمون نمی‌سازند بلکه <span class="blue">حساسیت سلول به اکسین</span> را افزایش داده و ریشه مویین (Hairy Root) تولید می‌کنند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۳۳. کدام باکتری در طبیعت مهندس ژنتیک نامیده می‌شود و چرا؟</div>
+        <ul class="options">
+            <li>الف) <i>E. coli</i> چون پلاسمیدهای زیادی دارد.</li>
+            <li>ب) <i>Agrobacterium tumefaciens</i> چون به طور طبیعی DNA خود را وارد ژنوم گیاه می‌کند.</li>
+            <li>ج) <i>Bacillus thuringiensis</i> چون ژن Bt دارد.</li>
+            <li>د) <i>Rhizobium</i> چون نیتروژن تثبیت می‌کند.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            <span class="gold">Agrobacterium tumefaciens</span> به عنوان "مهندس ژنتیک طبیعی" شناخته می‌شود زیرا تنها پروکاریوتی است که به طور طبیعی بخشی از DNA خود (T-DNA) را به یوکاریوت (گیاه) منتقل و ادغام می‌کند.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۳۴. کدام یک از محدودیت‌های سیستم آگروباکتریوم است؟</div>
+        <ul class="options">
+            <li>الف) عدم توانایی انتقال قطعات بزرگ DNA.</li>
+            <li>ب) پایداری کم ژن منتقل شده.</li>
+            <li>ج) دامنه میزبانی محدود (برخی تک‌لپه‌ها و گیاهان زراعی سخت آلوده می‌شوند).</li>
+            <li>د) دقت پایین در برش و ادغام T-DNA.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ج</strong><br>
+            اگرچه اخیراً پیشرفت‌هایی شده، اما آگروباکتریوم به طور سنتی گیاهان <span class="gold">تک‌لپه</span> (غلات) را کمتر آلوده می‌کند و دامنه میزبانی آن نسبت به روش تفنگ ژنی محدودتر است.
+        </div>
+    </div>
+
+    <div class="mcq-block">
+        <div class="question">۳۵. آنزیم‌های مسئول سنتز اکتوپین و نوپالین (ocs و nos) توسط ژن‌های موجود در کجا کد می‌شوند و کجا بیان می‌شوند؟</div>
+        <ul class="options">
+            <li>الف) روی کروموزوم باکتری - در باکتری بیان می‌شوند.</li>
+            <li>ب) روی T-DNA - در سلول گیاهی بیان می‌شوند.</li>
+            <li>ج) روی ناحیه vir - در باکتری بیان می‌شوند.</li>
+            <li>د) روی T-DNA - در باکتری بیان می‌شوند.</li>
+        </ul>
+        <div class="answer-key">
+            <strong>پاسخ صحیح: ب</strong><br>
+            <span class="red">نکته بسیار مهم و انحرافی:</span> ژن‌های <i>ocs</i> و <i>nos</i> روی <span class="gold">T-DNA</span> هستند (پس به گیاه منتقل می‌شوند) و دارای پروموتورهای یوکاریوتی هستند، پس فقط در <span class="blue">سلول گیاهی</span> بیان می‌شوند تا غذا (اوپین) برای باکتری بسازند.
+        </div>
+    </div>
+
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Find all MCQ blocks
+        const blocks = document.querySelectorAll('.mcq-block');
+        
+        blocks.forEach(block => {
+            // Find the answer key div inside the block
+            const answerKey = block.querySelector('.answer-key');
+            
+            if (answerKey) {
+                // Create the button
+                const btn = document.createElement('button');
+                btn.className = 'toggle-btn';
+                btn.innerText = 'نمایش پاسخ (Show Answer)';
+                
+                // Add click event to toggle
+                btn.onclick = function() {
+                    if (answerKey.classList.contains('show')) {
+                        answerKey.classList.remove('show');
+                        btn.innerText = 'نمایش پاسخ (Show Answer)';
+                        btn.style.backgroundColor = '#3498db';
+                    } else {
+                        answerKey.classList.add('show');
+                        btn.innerText = 'پنهان کردن پاسخ (Hide Answer)';
+                        btn.style.backgroundColor = '#7f8c8d';
+                    }
+                };
+                
+                // Insert the button before the answer key
+                block.insertBefore(btn, answerKey);
+            }
+        });
+    });
+</script>
+</body>
+</html>
