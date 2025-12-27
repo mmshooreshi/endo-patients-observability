@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vector Hoops: Pro CAD</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --bg-color: #050508;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'JetBrains Mono', monospace;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* --- UI Overlay --- */
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .stat-block {
+            background: rgba(5, 5, 8, 0.85);
+            border-left: 2px solid var(--neon-blue);
+            padding: 10px 15px;
+            backdrop-filter: blur(8px);
+            transform: skewX(-10deg);
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #889;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            transform: skewX(10deg);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--neon-blue);
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+            line-height: 1;
+            transform: skewX(10deg);
+        }
+
+        #combo-box {
+            text-align: right;
+            border-left: none;
+            border-right: 2px solid var(--neon-pink);
+            opacity: 0;
+            transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #combo-box.visible { opacity: 1; transform: scale(1.1) skewX(-10deg); }
+        #combo-val { color: var(--neon-pink); text-shadow: 0 0 15px rgba(255, 0, 255, 0.5); }
+
+        /* Camera Controls */
+        #controls {
+            pointer-events: auto;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 12px 20px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: all 0.2s;
+        }
+
+        .btn:active { background: var(--neon-blue); color: #000; transform: scale(0.95); }
+
+        /* Interaction Hint */
+        #hint {
+            position: absolute;
+            bottom: 20%;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            pointer-events: none;
+            letter-spacing: 3px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0% { opacity: 0.2; } 50% { opacity: 0.8; } 100% { opacity: 0.2; } }
+
+        /* Vignette & Grain */
+        .overlay-fx {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 120%);
+            pointer-events: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="overlay-fx"></div>
+
+<div id="ui">
+    <div class="hud-top">
+        <div class="stat-block">
+            <div class="stat-label">Points</div>
+            <div class="stat-value" id="score">00</div>
+        </div>
+        <div class="stat-block" id="combo-box">
+            <div class="stat-label">Chain Link</div>
+            <div class="stat-value" id="combo-val">x2</div>
+        </div>
+    </div>
+
+    <div id="hint">DRAG TO AIM // RELEASE TO FIRE</div>
+
+    <div id="controls">
+        <button class="btn" id="btn-reset">↺ Reset View</button>
+    </div>
+</div>
+
+<div id="canvas-container"></div>
+
+<!-- Import Map for Modules -->
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+            "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"
+        }
+    }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import * as CANNON from 'cannon-es';
+
+// --- CONFIGURATION ---
+const CONFIG = {
+    gravity: -20, // Physics gravity
+    substeps: 5, // Physics accuracy
+    colors: {
+        bg: 0x050508,
+        cyan: 0x00f3ff,
+        pink: 0xff00ff,
+        grid: 0x1a1a2e
+    },
+    cam: {
+        start: new THREE.Vector3(0, 15, 45),
+        lookAt: new THREE.Vector3(0, 10, 0)
+    },
+    hoop: {
+        y: 18,
+        z: -25,
+        radius: 4.5
+    }
+};
+
+// --- GLOBALS ---
+let scene, camera, renderer, composer;
+let world; // Physics world
+let physicsBodies = [], visualMeshes = []; // Sync arrays
+let ballBody, ballMesh;
+let hoopContainer;
+let score = 0, combo = 0;
+let isDragging = false;
+let isFlying = false;
+
+// Input vectors
+const dragStart = new THREE.Vector2();
+const dragCurrent = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Floor plane
+
+// Aiming Visuals
+let aimLine, trajectoryLine, landingMarker;
+
+// Camera State
+let shakeIntensity = 0;
+
+// --- INITIALIZATION ---
+
+function init() {
+    // 1. Setup Three.js
+    const container = document.getElementById('canvas-container');
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(CONFIG.colors.bg);
+    scene.fog = new THREE.FogExp2(CONFIG.colors.bg, 0.012);
+
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.copy(CONFIG.cam.start);
+    camera.lookAt(CONFIG.cam.lookAt);
+
+    renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // 2. Post Processing (Bloom)
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    bloomPass.threshold = 0.1;
+    bloomPass.strength = 1.0;
+    bloomPass.radius = 0.5;
+
+    composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // 3. Setup Cannon-es (Physics)
+    world = new CANNON.World();
+    world.gravity.set(0, CONFIG.gravity, 0);
+    
+    // Materials
+    const concreteMat = new CANNON.Material();
+    const ballMat = new CANNON.Material();
+    const rimMat = new CANNON.Material();
+
+    const ballContact = new CANNON.ContactMaterial(concreteMat, ballMat, { friction: 0.1, restitution: 0.75 });
+    const rimContact = new CANNON.ContactMaterial(rimMat, ballMat, { friction: 0.1, restitution: 0.6 });
+    world.addContactMaterial(ballContact);
+    world.addContactMaterial(rimContact);
+
+    // 4. Build World
+    buildEnvironment(concreteMat);
+    buildHoop(rimMat);
+    setupAimingVisuals();
+    spawnBall(ballMat);
+
+    // 5. Events
+    window.addEventListener('resize', onResize);
+    // Touch/Mouse Events
+    const canvas = renderer.domElement;
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    
+    document.getElementById('btn-reset').addEventListener('click', resetBall);
+
+    // Start Loop
+    animate();
+}
+
+// --- BUILDERS (BLUEPRINT STYLE) ---
+
+function buildEnvironment(physicsMat) {
+    // Visual Grid Floor
+    const grid = new THREE.GridHelper(200, 100, CONFIG.colors.cyan, CONFIG.colors.grid);
+    grid.position.y = 0.05;
+    scene.add(grid);
+
+    // Physics Floor
+    const floorBody = new CANNON.Body({
+        type: CANNON.Body.STATIC,
+        shape: new CANNON.Plane(),
+        material: physicsMat
+    });
+    floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+    world.addBody(floorBody);
+}
+
+function createBlueprintMesh(geometry, color, x, y, z) {
+    // This creates the "Wireframe + Black Body" look
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+
+    // 1. Black occluder (hides lines behind it)
+    const meshMat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.bg, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+    const mesh = new THREE.Mesh(geometry, meshMat);
+    group.add(mesh);
+
+    // 2. Glowing Edges
+    const edges = new THREE.EdgesGeometry(geometry);
+    const lineMat = new THREE.LineBasicMaterial({ color: color });
+    const lines = new THREE.LineSegments(edges, lineMat);
+    group.add(lines);
+
+    scene.add(group);
+    return group;
+}
+
+function buildHoop(physicsMat) {
+    hoopContainer = new THREE.Group();
+    hoopContainer.position.set(0, CONFIG.hoop.y, CONFIG.hoop.z);
+    scene.add(hoopContainer);
+
+    // Visuals: Backboard
+    const bbGeo = new THREE.BoxGeometry(16, 11, 0.5);
+    const bbMesh = createBlueprintMesh(bbGeo, CONFIG.colors.cyan, 0, 4, -5);
+    hoopContainer.add(bbMesh);
+    
+    // Physics: Backboard
+    const bbBody = new CANNON.Body({ type: CANNON.Body.STATIC, material: physicsMat });
+    bbBody.addShape(new CANNON.Box(new CANNON.Vec3(8, 5.5, 0.25)), new CANNON.Vec3(0, CONFIG.hoop.y + 4, CONFIG.hoop.z - 5));
+    world.addBody(bbBody);
+
+    // Visuals: Rim
+    const rimGeo = new THREE.TorusGeometry(CONFIG.hoop.radius, 0.2, 8, 32);
+    const rimEdges = new THREE.EdgesGeometry(rimGeo);
+    const rimVisual = new THREE.LineSegments(rimEdges, new THREE.LineBasicMaterial({ color: CONFIG.colors.pink }));
+    rimVisual.rotation.x = Math.PI / 2;
+    hoopContainer.add(rimVisual);
+
+    // Physics: Rim (Approximation using 16 capsules/spheres)
+    // Cannon doesn't have Torus, so we make a ring of colliders
+    const segmentCount = 16;
+    for (let i = 0; i < segmentCount; i++) {
+        const angle = (i / segmentCount) * Math.PI * 2;
+        const x = Math.cos(angle) * CONFIG.hoop.radius;
+        const z = Math.sin(angle) * CONFIG.hoop.radius;
+        
+        const segmentBody = new CANNON.Body({ type: CANNON.Body.STATIC, material: physicsMat });
+        segmentBody.addShape(new CANNON.Sphere(0.2)); // Thickness
+        segmentBody.position.set(x, CONFIG.hoop.y, CONFIG.hoop.z + z);
+        world.addBody(segmentBody);
+    }
+}
+
+function spawnBall(physicsMat) {
+    // Clean old
+    if(ballBody) { world.removeBody(ballBody); scene.remove(ballMesh); }
+
+    const radius = 1.3;
+    const startPos = new THREE.Vector3(0, 5, 20);
+
+    // Physics
+    const shape = new CANNON.Sphere(radius);
+    ballBody = new CANNON.Body({ mass: 5, material: physicsMat, shape: shape });
+    ballBody.position.set(startPos.x, startPos.y, startPos.z);
+    ballBody.linearDamping = 0.1;
+    ballBody.angularDamping = 0.1;
+    world.addBody(ballBody);
+
+    // Visuals
+    const geo = new THREE.IcosahedronGeometry(radius, 1);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x000000, polygonOffset: true, polygonOffsetFactor: 1 });
+    ballMesh = new THREE.Mesh(geo, mat);
+    
+    // Add wireframe cage
+    const wireGeo = new THREE.WireframeGeometry(geo);
+    const wire = new THREE.LineSegments(wireGeo, new THREE.LineBasicMaterial({ color: CONFIG.colors.cyan }));
+    ballMesh.add(wire);
+    
+    scene.add(ballMesh);
+    
+    isFlying = false;
+    isDragging = false;
+    document.getElementById('hint').style.display = 'block';
+
+    // Reset Camera
+    resetCamera();
+}
+
+// --- AIMING & INTERACTION ---
+
+function setupAimingVisuals() {
+    // Drag Line
+    const dragGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+    aimLine = new THREE.Line(dragGeo, new THREE.LineBasicMaterial({ color: CONFIG.colors.pink }));
+    scene.add(aimLine);
+
+    // Trajectory (Dashed)
+    const trajGeo = new THREE.BufferGeometry();
+    trajectoryLine = new THREE.Line(trajGeo, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 1, gapSize: 1, scale: 1 }));
+    scene.add(trajectoryLine);
+
+    // Landing marker
+    const markerGeo = new THREE.RingGeometry(0.5, 1, 32);
+    markerGeo.rotateX(-Math.PI / 2);
+    landingMarker = new THREE.Mesh(markerGeo, new THREE.MeshBasicMaterial({ color: CONFIG.colors.pink, side: THREE.DoubleSide, transparent: true, opacity: 0.5 }));
+    scene.add(landingMarker);
+
+    setAimingVisible(false);
+}
+
+function setAimingVisible(visible) {
+    aimLine.visible = visible;
+    trajectoryLine.visible = visible;
+    landingMarker.visible = visible;
+}
+
+function onPointerDown(e) {
+    if(isFlying) return;
+    
+    updateMouse(e);
+    raycaster.setFromCamera(mouse, camera);
+    const intersect = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane, intersect);
+    
+    if (intersect) {
+        isDragging = true;
+        dragStart.copy(intersect);
+        dragCurrent.copy(intersect);
+        setAimingVisible(true);
+        pulse(10); // Haptic
+        document.getElementById('hint').style.display = 'none';
+    }
+}
+
+function onPointerMove(e) {
+    if(!isDragging) return;
+    updateMouse(e);
+    raycaster.setFromCamera(mouse, camera);
+    raycaster.ray.intersectPlane(dragPlane, new THREE.Vector3()).copy(dragCurrent);
+    raycaster.ray.intersectPlane(dragPlane, dragCurrent);
+    
+    updateTrajectory();
+}
+
+function onPointerUp() {
+    if(!isDragging) return;
+    isDragging = false;
+    setAimingVisible(false);
+
+    // Calculate Launch Force
+    const force = getLaunchForce();
+    
+    // Apply to physics body
+    // Convert force vector to velocity (F = ma, simplified)
+    // We want to shoot Forward (negative Z) when dragging Back (positive Z)
+    ballBody.velocity.set(force.x, force.y, force.z);
+    
+    // Add Spin for realism
+    ballBody.angularVelocity.set(Math.random() * 10, 0, 0);
+
+    isFlying = true;
+    pulse(30); // Heavy Haptic
+}
+
+function updateMouse(e) {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+}
+
+function getLaunchForce() {
+    const dx = dragStart.x - dragCurrent.x;
+    const dz = dragStart.z - dragCurrent.z; // Dragging Z
+    
+    // Config
+    const powerMult = 1.2;
+    const heightMult = 0.8;
+    const maxDrag = 25;
+
+    // Clamping
+    const len = Math.sqrt(dx*dx + dz*dz);
+    const scale = Math.min(len, maxDrag) / len || 0;
+
+    const vX = dx * scale * powerMult;
+    const vZ = dz * scale * powerMult * 1.5; // More power forward
+    const vY = Math.min(len, maxDrag) * heightMult; // Upward arc
+
+    // Dragging back (positive Z) implies shooting forward (negative Z)
+    // But drag vector is (Start - Current). If Current is closer to camera (Positive Z), result is Negative.
+    // We want: Pull Back -> Shoot Forward.
+    
+    return new THREE.Vector3(vX, vY, -Math.abs(vZ)); // Force Z negative
+}
+
+function updateTrajectory() {
+    // 1. Update Pull Line
+    const positions = aimLine.geometry.attributes.position.array;
+    positions[0] = dragStart.x; positions[1] = 1; positions[2] = dragStart.z;
+    positions[3] = dragCurrent.x; positions[4] = 1; positions[5] = dragCurrent.z;
+    aimLine.geometry.attributes.position.needsUpdate = true;
+
+    // 2. Physics Simulation for Trajectory
+    const velocity = getLaunchForce();
+    const points = [];
+    const simPos = new THREE.Vector3(ballMesh.position.x, ballMesh.position.y, ballMesh.position.z);
+    const simVel = velocity.clone();
+    
+    const dt = 1/60;
+    const steps = 90; // 1.5 seconds prediction
+
+    for(let i=0; i<steps; i++) {
+        points.push(simPos.clone());
+        simVel.y += CONFIG.gravity * dt;
+        simPos.addScaledVector(simVel, dt);
+        if(simPos.y <= 0) break; // Floor hit
+    }
+
+    // Update Line
+    trajectoryLine.geometry.setFromPoints(points);
+    trajectoryLine.computeLineDistances(); // Essential for DashedMaterial
+
+    // Update Marker
+    if(points.length > 0) {
+        const last = points[points.length-1];
+        landingMarker.position.set(last.x, 0.06, last.z);
+    }
+}
+
+// --- GAME LOGIC ---
+
+function checkScoring() {
+    if(!isFlying) return;
+
+    // Detect if ball is near hoop
+    const dX = ballBody.position.x - 0; // Hoop X is 0
+    const dZ = ballBody.position.z - CONFIG.hoop.z;
+    const dist = Math.sqrt(dX*dX + dZ*dZ);
+
+    // Height check
+    // Hoop is at Y=18. Did we just cross it downwards?
+    const prevY = ballBody.previousPosition ? ballBody.previousPosition.y : ballBody.position.y;
+    
+    if (dist < CONFIG.hoop.radius - 1.3) { // Inside rim
+        if (prevY > CONFIG.hoop.y && ballBody.position.y <= CONFIG.hoop.y) {
+            // SCORE!
+            scorePoint();
+        }
+    }
+}
+
+function scorePoint() {
+    combo++;
+    score += (combo > 1 ? 2 : 1) * 2; // Double points
+    
+    updateHUD();
+    
+    // Effects
+    pulse([50, 50, 50]); // Pattern vibrate
+    shakeIntensity = 2.0;
+    
+    // Visual Spark
+    const color = combo > 2 ? CONFIG.colors.pink : CONFIG.colors.cyan;
+    hoopContainer.children[1].material.color.setHex(0xffffff); // Flash rim
+    setTimeout(() => hoopContainer.children[1].material.color.setHex(CONFIG.colors.pink), 200);
+
+    // Reset ball automatically after a moment
+    setTimeout(resetBall, 1500);
+}
+
+function updateHUD() {
+    document.getElementById('score').innerText = score.toString().padStart(2, '0');
+    const cBox = document.getElementById('combo-box');
+    if(combo > 1) {
+        cBox.classList.add('visible');
+        document.getElementById('combo-val').innerText = "x" + combo;
+    } else {
+        cBox.classList.remove('visible');
+    }
+}
+
+function resetBall() {
+    if(isFlying && ballBody.position.y < 5) combo = 0; // Reset combo if on floor
+    updateHUD();
+    spawnBall(ballBody.material);
+}
+
+// --- CAMERA & FEEDBACK ---
+
+function updateCamera(dt) {
+    if (isFlying) {
+        // Smart Cam: Find midpoint between ball and hoop
+        const bPos = ballMesh.position;
+        const hPos = new THREE.Vector3(0, CONFIG.hoop.y, CONFIG.hoop.z);
+        
+        // Target is midpoint, but offset back
+        const midX = (bPos.x + hPos.x) / 2;
+        const midY = Math.max((bPos.y + hPos.y) / 2, 10); // Don't go too low
+        const midZ = (bPos.z + hPos.z) / 2;
+
+        const targetPos = new THREE.Vector3(midX + 20, midY + 5, midZ + 30); // Side view offset
+        
+        // Smooth lerp
+        camera.position.lerp(targetPos, dt * 2);
+        camera.lookAt(midX, midY, midZ);
+    } else {
+        // Reset Cam lerp
+        camera.position.lerp(CONFIG.cam.start, dt * 3);
+        // Simple lookat center
+        const currentLook = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).add(camera.position);
+        const desiredLook = CONFIG.cam.lookAt;
+        // This part is simplified, Orbit controls logic or simple lookat is safer
+        camera.lookAt(CONFIG.cam.lookAt);
+    }
+
+    // Screen Shake
+    if (shakeIntensity > 0) {
+        const rx = (Math.random() - 0.5) * shakeIntensity * 0.5;
+        const ry = (Math.random() - 0.5) * shakeIntensity * 0.5;
+        camera.position.x += rx;
+        camera.position.y += ry;
+        shakeIntensity *= 0.9;
+        if(shakeIntensity < 0.1) shakeIntensity = 0;
+    }
+}
+
+function resetCamera() {
+    // Instant
+    // camera.position.copy(CONFIG.cam.start);
+    // camera.lookAt(CONFIG.cam.lookAt);
+}
+
+function pulse(pattern) {
+    if (navigator.vibrate) {
+        navigator.vibrate(pattern);
+    }
+}
+
+// --- ANIMATION LOOP ---
+
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    const dt = Math.min(clock.getDelta(), 0.1);
+
+    // Physics Step
+    world.step(1/60, dt, CONFIG.substeps);
+
+    // Sync Visuals
+    ballMesh.position.copy(ballBody.position);
+    ballMesh.quaternion.copy(ballBody.quaternion);
+    
+    // Store prev position for scoring logic
+    if(!ballBody.previousPosition) ballBody.previousPosition = new CANNON.Vec3();
+    
+    // Game Logic
+    checkScoring();
+    ballBody.previousPosition.copy(ballBody.position);
+
+    // Reset if ball falls into void
+    if (ballBody.position.y < -10) {
+        combo = 0;
+        resetBall();
+    }
+
+    updateCamera(dt);
+
+    // Render
+    composer.render();
+}
+
+function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Start
+init();
+
+</script>
+</body>
+</html>
