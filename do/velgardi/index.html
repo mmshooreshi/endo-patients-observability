@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vector Hoops: CAD Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: #0ff;
+            font-family: 'Share Tech Mono', monospace;
+            overflow: hidden;
+            touch-action: none; /* Prevent browser zooming/scrolling */
+            user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .score-box {
+            text-align: left;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .score-value {
+            font-size: 48px;
+            color: #0ff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .best-value {
+            font-size: 16px;
+            color: #007777;
+        }
+
+        .combo-box {
+            text-align: right;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .combo-box.active {
+            opacity: 1;
+        }
+
+        .combo-count {
+            font-size: 64px;
+            color: #f0f;
+            line-height: 1;
+            text-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+        }
+
+        .combo-label {
+            color: #f0f;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        .message-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .float-text {
+            position: absolute;
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1s forwards;
+            text-shadow: 0 0 5px white;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+
+        /* Scanline effect */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div class="score-box">
+                <div class="score-label">SCORE_DAT</div>
+                <div class="score-value" id="scoreDisplay">00</div>
+                <div class="best-value">HI: <span id="bestDisplay">00</span></div>
+            </div>
+            <div class="combo-box" id="comboContainer">
+                <div class="combo-count" id="comboDisplay">x2</div>
+                <div class="combo-label">COMBO LINK</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+/**
+ * VECTOR HOOPS: CAD EDITION
+ * A physics-based basketball game with an AutoCAD/Blueprint aesthetic.
+ */
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d', { alpha: false }); // Optimize for no transparency on bg
+const scoreEl = document.getElementById('scoreDisplay');
+const bestEl = document.getElementById('bestDisplay');
+const comboContainer = document.getElementById('comboContainer');
+const comboEl = document.getElementById('comboDisplay');
+
+// Game State
+let width, height;
+let balls = [];
+let particles = [];
+let texts = [];
+let score = 0;
+let highScore = localStorage.getItem('vectorHoopsHigh') || 0;
+let combo = 0;
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+let dragCurrent = { x: 0, y: 0 };
+let cameraShake = 0;
+
+// Physics Constants
+const GRAVITY = 0.6;
+const AIR_FRICTION = 0.995;
+const BOUNCE = 0.7;
+const DRAG_POWER = 0.18; // Multiplier for fling force
+const MAX_DRAG_DIST = 300; // Visual cap for line
+
+// Hoop State
+let hoop = {
+    x: 0,
+    y: 0,
+    w: 100, // Distance between rim points
+    h: 10,
+    rimRadius: 3,
+    vx: 0,
+    vy: 0,
+    moveType: 0 // 0: static, 1: horizontal, 2: vertical
+};
+
+// --- Setup & Resize ---
+
+function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Reset hoop position based on new screen size
+    hoop.x = width * 0.8;
+    hoop.y = height * 0.4;
+    // Ensure hoop isn't too close to edge
+    if (hoop.x > width - 60) hoop.x = width - 60;
+}
+
+window.addEventListener('resize', resize);
+resize();
+bestEl.innerText = highScore;
+
+// --- Input Handling ---
+
+function getPos(e) {
+    if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+}
+
+function onStart(e) {
+    // Only allow shooting if tapping in the bottom half or generally empty area
+    // prevent accidental shots when clicking UI (though UI is pointer-events:none)
+    const pos = getPos(e);
+    isDragging = true;
+    dragStart = pos;
+    dragCurrent = pos;
+}
+
+function onMove(e) {
+    if (!isDragging) return;
+    dragCurrent = getPos(e);
+}
+
+function onEnd(e) {
+    if (!isDragging) return;
+    isDragging = false;
+
+    // Calculate Vector
+    let dx = dragStart.x - dragCurrent.x;
+    let dy = dragStart.y - dragCurrent.y;
+    
+    // If drag was too small, ignore (tap)
+    if (Math.hypot(dx, dy) < 10) return;
+
+    // Spawn Ball
+    // Ball spawns at drag start position
+    spawnBall(dragStart.x, dragStart.y, dx * DRAG_POWER, dy * DRAG_POWER);
+}
+
+window.addEventListener('mousedown', onStart);
+window.addEventListener('mousemove', onMove);
+window.addEventListener('mouseup', onEnd);
+window.addEventListener('touchstart', onStart, {passive: false});
+window.addEventListener('touchmove', (e) => { e.preventDefault(); onMove(e); }, {passive: false});
+window.addEventListener('touchend', onEnd);
+
+// --- Game Objects ---
+
+class Ball {
+    constructor(x, y, vx, vy) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.r = 18; // Radius
+        this.active = true;
+        this.scored = false;
+        this.life = 250; // Frames to live
+        
+        // Trail settings
+        this.trail = [];
+        this.isFire = combo >= 3;
+        this.isSuperFire = combo >= 6;
+    }
+
+    update() {
+        // Physics
+        this.vy += GRAVITY;
+        this.vx *= AIR_FRICTION;
+        this.vy *= AIR_FRICTION;
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Wall collisions (bounce off sides and floor)
+        if (this.x - this.r < 0) {
+            this.x = this.r;
+            this.vx *= -BOUNCE;
+        } else if (this.x + this.r > width) {
+            this.x = width - this.r;
+            this.vx *= -BOUNCE;
+        }
+
+        if (this.y + this.r > height) {
+            this.y = height - this.r;
+            this.vy *= -BOUNCE * 0.8; // Floor has more friction
+            // Stop tiny bounces
+            if (Math.abs(this.vy) < 1) this.vy = 0;
+            // Rolling friction
+            if (this.y >= height - this.r - 1) this.vx *= 0.95;
+        }
+
+        // Hoop Collision
+        this.checkHoopCollision();
+
+        // Trail Logic
+        this.trail.push({x: this.x, y: this.y});
+        if (this.trail.length > 10) this.trail.shift();
+
+        // Fire particles
+        if (this.isFire) {
+            if (Math.random() > 0.2) {
+                let color = this.isSuperFire ? '#fff' : '#f0f';
+                spawnParticle(this.x, this.y, (Math.random()-0.5)*2, (Math.random()-0.5)*2, color, 20);
+            }
+        }
+
+        this.life--;
+    }
+
+    checkHoopCollision() {
+        if (this.scored) return; // Already scored
+
+        // Hoop is defined by two points: Rim Left (RL) and Rim Right (RR)
+        // Backboard is a line behind it.
+        
+        const hoopY = hoop.y;
+        const hoopLeft = hoop.x - hoop.w/2;
+        const hoopRight = hoop.x + hoop.w/2;
+        
+        // 1. Backboard Collision (Simple line segment vertical)
+        // Backboard is roughly 60px high, positioned slightly behind rim
+        const bbX = hoopRight + 10;
+        const bbTop = hoopY - 80;
+        const bbBot = hoopY + 20;
+
+        // Check Backboard (simplified as a vertical wall segment)
+        if (this.x + this.r > bbX - 5 && this.x - this.r < bbX + 5) {
+            if (this.y > bbTop && this.y < bbBot) {
+                if (this.vx > 0) {
+                    this.x = bbX - 5 - this.r;
+                    this.vx *= -BOUNCE;
+                    createSparks(this.x + this.r, this.y, '#0ff');
+                }
+            }
+        }
+
+        // 2. Rim collisions (Circle vs Point)
+        const checkRimPoint = (rx, ry) => {
+            let dx = this.x - rx;
+            let dy = this.y - ry;
+            let dist = Math.hypot(dx, dy);
+            
+            if (dist < this.r + hoop.rimRadius) {
+                // Collision!
+                // Normalize normal vector
+                let nx = dx / dist;
+                let ny = dy / dist;
+                
+                // Reflect velocity
+                // v' = v - 2 * (v . n) * n
+                let dot = this.vx * nx + this.vy * ny;
+                
+                this.vx = (this.vx - 2 * dot * nx) * BOUNCE;
+                this.vy = (this.vy - 2 * dot * ny) * BOUNCE;
+                
+                // Push out to prevent sticking
+                let overlap = (this.r + hoop.rimRadius) - dist;
+                this.x += nx * overlap;
+                this.y += ny * overlap;
+
+                createSparks(rx, ry, '#fff');
+                return true;
+            }
+            return false;
+        };
+
+        checkRimPoint(hoopLeft, hoopY);
+        checkRimPoint(hoopRight, hoopY);
+
+        // 3. Scoring Logic
+        // Ball must pass through the top plane of the hoop downwards
+        // We check if ball was above last frame, and is below now, and is between L/R
+        // We use history logic or simple position checks
+        
+        // previous frame Y (approx)
+        let prevY = this.y - this.vy; 
+        
+        if (prevY < hoopY && this.y >= hoopY) {
+            if (this.x > hoopLeft && this.x < hoopRight) {
+                this.scored = true;
+                handleScore(this.x, this.y, this.isFire);
+            }
+        }
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        
+        // Dynamic styling based on combo
+        if (this.isSuperFire) {
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 20;
+        } else if (this.isFire) {
+            ctx.fillStyle = '#000';
+            ctx.strokeStyle = '#f0f';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.shadowColor = '#f0f';
+            ctx.shadowBlur = 10;
+        } else {
+            ctx.fillStyle = '#000';
+            ctx.strokeStyle = '#0ff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.shadowColor = '#0ff';
+            ctx.shadowBlur = 5;
+        }
+        
+        if (!this.isFire) ctx.fill(); // Hollow look for normal balls
+
+        // Draw internal "CAD" lines for rotation effect (simulated)
+        let angle = (this.x / this.r);
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(-this.r, 0); ctx.lineTo(this.r, 0);
+        ctx.moveTo(0, -this.r); ctx.lineTo(0, this.r);
+        ctx.strokeStyle = this.isSuperFire ? '#000' : (this.isFire ? '#f0f' : 'rgba(0, 255, 255, 0.5)');
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+
+        // Reset shadow
+        ctx.shadowBlur = 0;
+
+        // Draw trail
+        if (this.trail.length > 0) {
+            ctx.beginPath();
+            ctx.moveTo(this.trail[0].x, this.trail[0].y);
+            for(let t of this.trail) ctx.lineTo(t.x, t.y);
+            ctx.strokeStyle = this.isSuperFire ? 'rgba(255,255,255,0.2)' : (this.isFire ? 'rgba(255,0,255,0.2)' : 'rgba(0,255,255,0.1)');
+            ctx.lineWidth = this.r;
+            ctx.stroke();
+        }
+    }
+}
+
+class Particle {
+    constructor(x, y, vx, vy, color, life) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.color = color;
+        this.life = life;
+        this.maxLife = life;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life--;
+    }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = this.life / this.maxLife;
+        ctx.fillRect(this.x, this.y, 3, 3);
+        ctx.globalAlpha = 1;
+    }
+}
+
+class FloatingText {
+    constructor(x, y, text, color) {
+        this.x = x;
+        this.y = y;
+        this.text = text;
+        this.color = color;
+        this.life = 60;
+        this.vy = -1;
+    }
+    update() {
+        this.y += this.vy;
+        this.life--;
+    }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.font = "bold 24px 'Share Tech Mono'";
+        ctx.globalAlpha = this.life / 60;
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.globalAlpha = 1;
+    }
+}
+
+// --- Logic ---
+
+function spawnBall(x, y, vx, vy) {
+    balls.push(new Ball(x, y, vx, vy));
+    // Remove old balls if too many
+    if (balls.length > 5) balls.shift();
+}
+
+function spawnParticle(x, y, vx, vy, color, life) {
+    particles.push(new Particle(x, y, vx, vy, color, life));
+}
+
+function createSparks(x, y, color) {
+    for(let i=0; i<8; i++) {
+        spawnParticle(x, y, (Math.random()-0.5)*5, (Math.random()-0.5)*5, color, 30);
+    }
+}
+
+function createExplosion(x, y, color) {
+    // Shockwave ring
+    // We'll simulate with particles
+    for(let i=0; i<30; i++) {
+        let ang = Math.random() * Math.PI * 2;
+        let speed = Math.random() * 5 + 2;
+        spawnParticle(x, y, Math.cos(ang)*speed, Math.sin(ang)*speed, color, 45);
+    }
+}
+
+function handleScore(x, y, isFire) {
+    // Update Score
+    let points = 1 + Math.floor(combo / 2);
+    if (isFire) points *= 2;
+    
+    score += points;
+    combo++;
+    
+    // High Score
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('vectorHoopsHigh', highScore);
+    }
+
+    // UI Updates
+    scoreEl.innerText = score.toString().padStart(2, '0');
+    bestEl.innerText = highScore;
+    
+    // Combo UI
+    if (combo > 1) {
+        comboContainer.classList.add('active');
+        comboEl.innerText = "x" + combo;
+        
+        // Effects
+        cameraShake = 5 + combo;
+        let color = combo >= 5 ? '#fff' : '#f0f';
+        createExplosion(x, y, color);
+        
+        // Float text
+        texts.push(new FloatingText(x, y - 50, "SWISH! x" + combo, color));
+    } else {
+        texts.push(new FloatingText(x, y - 50, "+1", "#0ff"));
+        createSparks(x, y, '#0ff');
+    }
+
+    // Move Hoop Difficulty
+    randomizeHoop();
+}
+
+function resetCombo() {
+    if (combo > 1) {
+        texts.push(new FloatingText(width/2 - 50, height/2, "COMBO LOST", "#555"));
+    }
+    combo = 0;
+    comboContainer.classList.remove('active');
+}
+
+function randomizeHoop() {
+    // Determine new position
+    // Keep it in right half, upper area
+    let targetX = width * 0.5 + Math.random() * (width * 0.4);
+    let targetY = height * 0.2 + Math.random() * (height * 0.4);
+    
+    // Smooth transition logic could go here, but instant teleport 
+    // or simple lerp is fine for "CAD" style "Updating Geometry" feel.
+    // Let's tween it simply in update loop or just set it for responsiveness
+    
+    hoop.targetX = targetX;
+    hoop.targetY = targetY;
+}
+
+// --- Main Loop ---
+
+function drawBackgroundGrid() {
+    ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    const gridSize = 50;
+    
+    // Calculate offset for parallax or just static
+    for (let x = 0; x <= width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+    }
+    for (let y = 0; y <= height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+}
+
+function drawHoop() {
+    // Hoop logic - ease to target
+    if (hoop.targetX) {
+        hoop.x += (hoop.targetX - hoop.x) * 0.05;
+        hoop.y += (hoop.targetY - hoop.y) * 0.05;
+    }
+
+    const hx = hoop.x;
+    const hy = hoop.y;
+    const hw = hoop.w;
+    
+    ctx.strokeStyle = combo >= 5 ? '#f0f' : '#0ff';
+    ctx.lineWidth = 2;
+    
+    // Backboard (Vertical Line)
+    const bbX = hx + hw/2 + 10;
+    ctx.beginPath();
+    ctx.moveTo(bbX, hy - 80);
+    ctx.lineTo(bbX, hy + 20);
+    // Support arm (horizontal)
+    ctx.moveTo(bbX, hy - 30);
+    ctx.lineTo(width, hy - 30);
+    ctx.stroke();
+    
+    // Rim
+    ctx.beginPath();
+    ctx.moveTo(hx - hw/2, hy);
+    ctx.lineTo(hx + hw/2, hy);
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Net (Procedural lines)
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+    ctx.beginPath();
+    // Simple zig zag net
+    let netHeight = 60;
+    let topW = hw;
+    let botW = hw * 0.6;
+    let strands = 6;
+    
+    for(let i=0; i<=strands; i++) {
+        let t = i/strands;
+        let x1 = (hx - topW/2) + topW*t;
+        let x2 = (hx - botW/2) + botW*t;
+        ctx.moveTo(x1, hy);
+        ctx.lineTo(x2, hy + netHeight);
+    }
+    ctx.stroke();
+}
+
+function drawAimLine() {
+    if (!isDragging) return;
+
+    let dx = dragStart.x - dragCurrent.x;
+    let dy = dragStart.y - dragCurrent.y;
+    
+    // Clamp visual length
+    let dist = Math.hypot(dx, dy);
+    let scale = Math.min(dist, MAX_DRAG_DIST) / dist;
+    
+    // Draw trajectory prediction (simple parabolic curve)
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+
+    let simX = dragStart.x;
+    let simY = dragStart.y;
+    let simVx = dx * DRAG_POWER;
+    let simVy = dy * DRAG_POWER;
+
+    ctx.moveTo(simX, simY);
+
+    for(let i=0; i<20; i++) { // Draw 20 steps of prediction
+        simVy += GRAVITY;
+        simX += simVx;
+        simY += simVy;
+        ctx.lineTo(simX, simY);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw Pull Line
+    ctx.beginPath();
+    ctx.moveTo(dragStart.x, dragStart.y);
+    ctx.lineTo(dragCurrent.x, dragCurrent.y);
+    ctx.strokeStyle = '#f0f';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Draw Crosshair at start
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(dragStart.x, dragStart.y, 10, 0, Math.PI*2);
+    ctx.moveTo(dragStart.x - 15, dragStart.y); ctx.lineTo(dragStart.x + 15, dragStart.y);
+    ctx.moveTo(dragStart.x, dragStart.y - 15); ctx.lineTo(dragStart.x, dragStart.y + 15);
+    ctx.stroke();
+    
+    // Draw Data info
+    ctx.fillStyle = '#fff';
+    ctx.font = "12px monospace";
+    ctx.fillText(`PWR: ${Math.floor(dist)}`, dragStart.x + 20, dragStart.y - 20);
+    ctx.fillText(`ANG: ${Math.floor(Math.atan2(dy, dx) * 180 / Math.PI)}°`, dragStart.x + 20, dragStart.y - 8);
+}
+
+function gameLoop() {
+    // Shake effect
+    let shakeX = 0, shakeY = 0;
+    if (cameraShake > 0) {
+        shakeX = (Math.random() - 0.5) * cameraShake;
+        shakeY = (Math.random() - 0.5) * cameraShake;
+        cameraShake *= 0.9; // Decay
+        if (cameraShake < 0.5) cameraShake = 0;
+    }
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // Clear Screen
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(-shakeX, -shakeY, width, height); // Fill slightly larger for shake
+
+    drawBackgroundGrid();
+    drawHoop();
+    
+    // Update & Draw Balls
+    for (let i = balls.length - 1; i >= 0; i--) {
+        let b = balls[i];
+        if (b.life <= 0) {
+            if (!b.scored) resetCombo(); // Missed ball dies
+            balls.splice(i, 1);
+            continue;
+        }
+        b.update();
+        b.draw();
+        
+        // Check if ball went off screen bottom
+        if (b.y > height + 50) {
+             if (!b.scored) resetCombo();
+             b.life = 0; // Kill next frame
+        }
+    }
+
+    // Update & Draw Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+        p.update();
+        p.draw();
+    }
+
+    // Update & Draw Floating Text
+    for (let i = texts.length - 1; i >= 0; i--) {
+        let t = texts[i];
+        if (t.life <= 0) {
+            texts.splice(i, 1);
+            continue;
+        }
+        t.update();
+        t.draw();
+    }
+
+    drawAimLine();
+
+    ctx.restore();
+    requestAnimationFrame(gameLoop);
+}
+
+// Start
+requestAnimationFrame(gameLoop);
+
+</script>
+</body>
+</html>
