@@ -2,43 +2,49 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Vector Hoops 3D: CAD Edition</title>
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vector Hoops: Pro CAD</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --bg-color: #050508;
+        }
 
         body {
             margin: 0;
-            padding: 0;
-            background-color: #050505;
-            color: #0ff;
-            font-family: 'Share Tech Mono', monospace;
             overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'JetBrains Mono', monospace;
             user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
         }
 
         #canvas-container {
+            width: 100vw;
+            height: 100vh;
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
             z-index: 1;
         }
 
-        /* UI Overlay */
-        #ui-layer {
+        /* --- UI Overlay --- */
+        #ui {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 2;
+            z-index: 10;
             pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 20px;
+            padding: 24px;
             box-sizing: border-box;
         }
 
@@ -48,773 +54,643 @@
             align-items: flex-start;
         }
 
-        .data-block {
-            background: rgba(0, 20, 20, 0.8);
-            border: 1px solid #0ff;
-            padding: 10px;
-            backdrop-filter: blur(4px);
-            pointer-events: auto; /* Allow clicking buttons */
+        .stat-block {
+            background: rgba(5, 5, 8, 0.85);
+            border-left: 2px solid var(--neon-blue);
+            padding: 10px 15px;
+            backdrop-filter: blur(8px);
+            transform: skewX(-10deg);
         }
 
-        .score-value {
-            font-size: 48px;
-            color: #0ff;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-            line-height: 1;
-        }
-
-        .label {
-            font-size: 12px;
-            color: #666;
+        .stat-label {
+            font-size: 10px;
+            color: #889;
             letter-spacing: 2px;
             text-transform: uppercase;
+            transform: skewX(10deg);
         }
 
-        .combo-box {
-            text-align: right;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .combo-box.active { opacity: 1; }
-        .combo-count {
-            font-size: 64px;
-            color: #f0f;
-            text-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--neon-blue);
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
             line-height: 1;
+            transform: skewX(10deg);
         }
 
-        /* Controls Panel */
-        #controls-panel {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
+        #combo-box {
+            text-align: right;
+            border-left: none;
+            border-right: 2px solid var(--neon-pink);
+            opacity: 0;
+            transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #combo-box.visible { opacity: 1; transform: scale(1.1) skewX(-10deg); }
+        #combo-val { color: var(--neon-pink); text-shadow: 0 0 15px rgba(255, 0, 255, 0.5); }
+
+        /* Camera Controls */
+        #controls {
             pointer-events: auto;
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
 
-        button {
-            background: rgba(0,0,0,0.5);
-            border: 1px solid #0ff;
-            color: #0ff;
-            font-family: 'Share Tech Mono', monospace;
-            padding: 8px 15px;
-            cursor: pointer;
-            transition: 0.2s;
-            text-transform: uppercase;
+        .btn {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 12px 20px;
+            font-family: inherit;
+            font-weight: bold;
             font-size: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: all 0.2s;
         }
 
-        button:hover { background: #0ff; color: #000; }
-        button.active { background: #0ff; color: #000; box-shadow: 0 0 10px #0ff; }
+        .btn:active { background: var(--neon-blue); color: #000; transform: scale(0.95); }
 
-        /* CRT Scanline Effect */
-        .scanlines {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        /* Floating interaction hint */
+        /* Interaction Hint */
         #hint {
             position: absolute;
-            bottom: 100px;
+            bottom: 20%;
             width: 100%;
             text-align: center;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 14px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
             pointer-events: none;
+            letter-spacing: 3px;
             animation: pulse 2s infinite;
         }
-        @keyframes pulse { 0% {opacity:0.3} 50% {opacity:1} 100% {opacity:0.3} }
+
+        @keyframes pulse { 0% { opacity: 0.2; } 50% { opacity: 0.8; } 100% { opacity: 0.2; } }
+
+        /* Vignette & Grain */
+        .overlay-fx {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 120%);
+            pointer-events: none;
+            z-index: 5;
+        }
     </style>
 </head>
 <body>
 
-    <div class="scanlines"></div>
-    <div id="canvas-container"></div>
+<div class="overlay-fx"></div>
 
-    <div id="ui-layer">
-        <div class="hud-top">
-            <div class="data-block">
-                <div class="label">SCORE_DAT</div>
-                <div class="score-value" id="score">00</div>
-                <div class="label" style="margin-top:5px; color:#0aa">HI: <span id="highscore">00</span></div>
-            </div>
-            
-            <div class="combo-box" id="combo-container">
-                <div class="combo-count" id="combo-val">x2</div>
-                <div class="label" style="color:#f0f">COMBO LINK</div>
-            </div>
+<div id="ui">
+    <div class="hud-top">
+        <div class="stat-block">
+            <div class="stat-label">Points</div>
+            <div class="stat-value" id="score">00</div>
         </div>
-
-        <div id="hint">DRAG MOUSE ON FLOOR TO AIM • RELEASE TO SHOOT</div>
-
-        <div id="controls-panel">
-            <button id="cam-toggle">Free Cam [OFF]</button>
-            <button id="reset-cam">Reset View</button>
+        <div class="stat-block" id="combo-box">
+            <div class="stat-label">Chain Link</div>
+            <div class="stat-value" id="combo-val">x2</div>
         </div>
     </div>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
+    <div id="hint">DRAG TO AIM // RELEASE TO FIRE</div>
+
+    <div id="controls">
+        <button class="btn" id="btn-reset">↺ Reset View</button>
+    </div>
+</div>
+
+<div id="canvas-container"></div>
+
+<!-- Import Map for Modules -->
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+            "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"
         }
-    </script>
+    }
+</script>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import * as CANNON from 'cannon-es';
 
-        // --- Configuration ---
-        const CONFIG = {
-            gravity: -50,
-            drag: 0.99,
-            floorFriction: 0.9,
-            bounce: 0.7,
-            ballRadius: 1.2,
-            rimRadius: 4.5,
-            rimTube: 0.2,
-            hoopHeight: 18,
-            hoopZ: -25, // Distance from center
-            maxPull: 30
-        };
+// --- CONFIGURATION ---
+const CONFIG = {
+    gravity: -20, // Physics gravity
+    substeps: 5, // Physics accuracy
+    colors: {
+        bg: 0x050508,
+        cyan: 0x00f3ff,
+        pink: 0xff00ff,
+        grid: 0x1a1a2e
+    },
+    cam: {
+        start: new THREE.Vector3(0, 15, 45),
+        lookAt: new THREE.Vector3(0, 10, 0)
+    },
+    hoop: {
+        y: 18,
+        z: -25,
+        radius: 4.5
+    }
+};
 
-        // --- State ---
-        let score = 0;
-        let highscore = localStorage.getItem('vh3d_high') || 0;
-        let combo = 0;
-        let balls = [];
-        let particles = [];
-        let isDragging = false;
-        let dragStart = new THREE.Vector3();
-        let dragCurrent = new THREE.Vector3();
-        let dragVector = new THREE.Vector3();
-        let isFreeCam = false;
+// --- GLOBALS ---
+let scene, camera, renderer, composer;
+let world; // Physics world
+let physicsBodies = [], visualMeshes = []; // Sync arrays
+let ballBody, ballMesh;
+let hoopContainer;
+let score = 0, combo = 0;
+let isDragging = false;
+let isFlying = false;
 
-        // --- Setup Scene ---
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x050505, 0.015);
+// Input vectors
+const dragStart = new THREE.Vector2();
+const dragCurrent = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Floor plane
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // Initial "Player" View
-        const defaultCamPos = { x: 0, y: 15, z: 40 };
-        camera.position.set(defaultCamPos.x, defaultCamPos.y, defaultCamPos.z);
+// Aiming Visuals
+let aimLine, trajectoryLine, landingMarker;
+
+// Camera State
+let shakeIntensity = 0;
+
+// --- INITIALIZATION ---
+
+function init() {
+    // 1. Setup Three.js
+    const container = document.getElementById('canvas-container');
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(CONFIG.colors.bg);
+    scene.fog = new THREE.FogExp2(CONFIG.colors.bg, 0.012);
+
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.copy(CONFIG.cam.start);
+    camera.lookAt(CONFIG.cam.lookAt);
+
+    renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // 2. Post Processing (Bloom)
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    bloomPass.threshold = 0.1;
+    bloomPass.strength = 1.0;
+    bloomPass.radius = 0.5;
+
+    composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // 3. Setup Cannon-es (Physics)
+    world = new CANNON.World();
+    world.gravity.set(0, CONFIG.gravity, 0);
+    
+    // Materials
+    const concreteMat = new CANNON.Material();
+    const ballMat = new CANNON.Material();
+    const rimMat = new CANNON.Material();
+
+    const ballContact = new CANNON.ContactMaterial(concreteMat, ballMat, { friction: 0.1, restitution: 0.75 });
+    const rimContact = new CANNON.ContactMaterial(rimMat, ballMat, { friction: 0.1, restitution: 0.6 });
+    world.addContactMaterial(ballContact);
+    world.addContactMaterial(rimContact);
+
+    // 4. Build World
+    buildEnvironment(concreteMat);
+    buildHoop(rimMat);
+    setupAimingVisuals();
+    spawnBall(ballMat);
+
+    // 5. Events
+    window.addEventListener('resize', onResize);
+    // Touch/Mouse Events
+    const canvas = renderer.domElement;
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    
+    document.getElementById('btn-reset').addEventListener('click', resetBall);
+
+    // Start Loop
+    animate();
+}
+
+// --- BUILDERS (BLUEPRINT STYLE) ---
+
+function buildEnvironment(physicsMat) {
+    // Visual Grid Floor
+    const grid = new THREE.GridHelper(200, 100, CONFIG.colors.cyan, CONFIG.colors.grid);
+    grid.position.y = 0.05;
+    scene.add(grid);
+
+    // Physics Floor
+    const floorBody = new CANNON.Body({
+        type: CANNON.Body.STATIC,
+        shape: new CANNON.Plane(),
+        material: physicsMat
+    });
+    floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+    world.addBody(floorBody);
+}
+
+function createBlueprintMesh(geometry, color, x, y, z) {
+    // This creates the "Wireframe + Black Body" look
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+
+    // 1. Black occluder (hides lines behind it)
+    const meshMat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.bg, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+    const mesh = new THREE.Mesh(geometry, meshMat);
+    group.add(mesh);
+
+    // 2. Glowing Edges
+    const edges = new THREE.EdgesGeometry(geometry);
+    const lineMat = new THREE.LineBasicMaterial({ color: color });
+    const lines = new THREE.LineSegments(edges, lineMat);
+    group.add(lines);
+
+    scene.add(group);
+    return group;
+}
+
+function buildHoop(physicsMat) {
+    hoopContainer = new THREE.Group();
+    hoopContainer.position.set(0, CONFIG.hoop.y, CONFIG.hoop.z);
+    scene.add(hoopContainer);
+
+    // Visuals: Backboard
+    const bbGeo = new THREE.BoxGeometry(16, 11, 0.5);
+    const bbMesh = createBlueprintMesh(bbGeo, CONFIG.colors.cyan, 0, 4, -5);
+    hoopContainer.add(bbMesh);
+    
+    // Physics: Backboard
+    const bbBody = new CANNON.Body({ type: CANNON.Body.STATIC, material: physicsMat });
+    bbBody.addShape(new CANNON.Box(new CANNON.Vec3(8, 5.5, 0.25)), new CANNON.Vec3(0, CONFIG.hoop.y + 4, CONFIG.hoop.z - 5));
+    world.addBody(bbBody);
+
+    // Visuals: Rim
+    const rimGeo = new THREE.TorusGeometry(CONFIG.hoop.radius, 0.2, 8, 32);
+    const rimEdges = new THREE.EdgesGeometry(rimGeo);
+    const rimVisual = new THREE.LineSegments(rimEdges, new THREE.LineBasicMaterial({ color: CONFIG.colors.pink }));
+    rimVisual.rotation.x = Math.PI / 2;
+    hoopContainer.add(rimVisual);
+
+    // Physics: Rim (Approximation using 16 capsules/spheres)
+    // Cannon doesn't have Torus, so we make a ring of colliders
+    const segmentCount = 16;
+    for (let i = 0; i < segmentCount; i++) {
+        const angle = (i / segmentCount) * Math.PI * 2;
+        const x = Math.cos(angle) * CONFIG.hoop.radius;
+        const z = Math.sin(angle) * CONFIG.hoop.radius;
         
-        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
+        const segmentBody = new CANNON.Body({ type: CANNON.Body.STATIC, material: physicsMat });
+        segmentBody.addShape(new CANNON.Sphere(0.2)); // Thickness
+        segmentBody.position.set(x, CONFIG.hoop.y, CONFIG.hoop.z + z);
+        world.addBody(segmentBody);
+    }
+}
 
-        // --- Post Processing (Glow) ---
-        const renderScene = new RenderPass(scene, camera);
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0;
-        bloomPass.strength = 1.2; // Intense Neon
-        bloomPass.radius = 0.5;
+function spawnBall(physicsMat) {
+    // Clean old
+    if(ballBody) { world.removeBody(ballBody); scene.remove(ballMesh); }
 
-        const composer = new EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(bloomPass);
+    const radius = 1.3;
+    const startPos = new THREE.Vector3(0, 5, 20);
 
-        // --- Controls ---
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.enabled = false; // Start disabled
-        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Don't go below floor
+    // Physics
+    const shape = new CANNON.Sphere(radius);
+    ballBody = new CANNON.Body({ mass: 5, material: physicsMat, shape: shape });
+    ballBody.position.set(startPos.x, startPos.y, startPos.z);
+    ballBody.linearDamping = 0.1;
+    ballBody.angularDamping = 0.1;
+    world.addBody(ballBody);
 
-        // --- Lighting ---
-        const ambientLight = new THREE.AmbientLight(0x404040, 2);
-        scene.add(ambientLight);
+    // Visuals
+    const geo = new THREE.IcosahedronGeometry(radius, 1);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x000000, polygonOffset: true, polygonOffsetFactor: 1 });
+    ballMesh = new THREE.Mesh(geo, mat);
+    
+    // Add wireframe cage
+    const wireGeo = new THREE.WireframeGeometry(geo);
+    const wire = new THREE.LineSegments(wireGeo, new THREE.LineBasicMaterial({ color: CONFIG.colors.cyan }));
+    ballMesh.add(wire);
+    
+    scene.add(ballMesh);
+    
+    isFlying = false;
+    isDragging = false;
+    document.getElementById('hint').style.display = 'block';
+
+    // Reset Camera
+    resetCamera();
+}
+
+// --- AIMING & INTERACTION ---
+
+function setupAimingVisuals() {
+    // Drag Line
+    const dragGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+    aimLine = new THREE.Line(dragGeo, new THREE.LineBasicMaterial({ color: CONFIG.colors.pink }));
+    scene.add(aimLine);
+
+    // Trajectory (Dashed)
+    const trajGeo = new THREE.BufferGeometry();
+    trajectoryLine = new THREE.Line(trajGeo, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 1, gapSize: 1, scale: 1 }));
+    scene.add(trajectoryLine);
+
+    // Landing marker
+    const markerGeo = new THREE.RingGeometry(0.5, 1, 32);
+    markerGeo.rotateX(-Math.PI / 2);
+    landingMarker = new THREE.Mesh(markerGeo, new THREE.MeshBasicMaterial({ color: CONFIG.colors.pink, side: THREE.DoubleSide, transparent: true, opacity: 0.5 }));
+    scene.add(landingMarker);
+
+    setAimingVisible(false);
+}
+
+function setAimingVisible(visible) {
+    aimLine.visible = visible;
+    trajectoryLine.visible = visible;
+    landingMarker.visible = visible;
+}
+
+function onPointerDown(e) {
+    if(isFlying) return;
+    
+    updateMouse(e);
+    raycaster.setFromCamera(mouse, camera);
+    const intersect = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane, intersect);
+    
+    if (intersect) {
+        isDragging = true;
+        dragStart.copy(intersect);
+        dragCurrent.copy(intersect);
+        setAimingVisible(true);
+        pulse(10); // Haptic
+        document.getElementById('hint').style.display = 'none';
+    }
+}
+
+function onPointerMove(e) {
+    if(!isDragging) return;
+    updateMouse(e);
+    raycaster.setFromCamera(mouse, camera);
+    raycaster.ray.intersectPlane(dragPlane, new THREE.Vector3()).copy(dragCurrent);
+    raycaster.ray.intersectPlane(dragPlane, dragCurrent);
+    
+    updateTrajectory();
+}
+
+function onPointerUp() {
+    if(!isDragging) return;
+    isDragging = false;
+    setAimingVisible(false);
+
+    // Calculate Launch Force
+    const force = getLaunchForce();
+    
+    // Apply to physics body
+    // Convert force vector to velocity (F = ma, simplified)
+    // We want to shoot Forward (negative Z) when dragging Back (positive Z)
+    ballBody.velocity.set(force.x, force.y, force.z);
+    
+    // Add Spin for realism
+    ballBody.angularVelocity.set(Math.random() * 10, 0, 0);
+
+    isFlying = true;
+    pulse(30); // Heavy Haptic
+}
+
+function updateMouse(e) {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+}
+
+function getLaunchForce() {
+    const dx = dragStart.x - dragCurrent.x;
+    const dz = dragStart.z - dragCurrent.z; // Dragging Z
+    
+    // Config
+    const powerMult = 1.2;
+    const heightMult = 0.8;
+    const maxDrag = 25;
+
+    // Clamping
+    const len = Math.sqrt(dx*dx + dz*dz);
+    const scale = Math.min(len, maxDrag) / len || 0;
+
+    const vX = dx * scale * powerMult;
+    const vZ = dz * scale * powerMult * 1.5; // More power forward
+    const vY = Math.min(len, maxDrag) * heightMult; // Upward arc
+
+    // Dragging back (positive Z) implies shooting forward (negative Z)
+    // But drag vector is (Start - Current). If Current is closer to camera (Positive Z), result is Negative.
+    // We want: Pull Back -> Shoot Forward.
+    
+    return new THREE.Vector3(vX, vY, -Math.abs(vZ)); // Force Z negative
+}
+
+function updateTrajectory() {
+    // 1. Update Pull Line
+    const positions = aimLine.geometry.attributes.position.array;
+    positions[0] = dragStart.x; positions[1] = 1; positions[2] = dragStart.z;
+    positions[3] = dragCurrent.x; positions[4] = 1; positions[5] = dragCurrent.z;
+    aimLine.geometry.attributes.position.needsUpdate = true;
+
+    // 2. Physics Simulation for Trajectory
+    const velocity = getLaunchForce();
+    const points = [];
+    const simPos = new THREE.Vector3(ballMesh.position.x, ballMesh.position.y, ballMesh.position.z);
+    const simVel = velocity.clone();
+    
+    const dt = 1/60;
+    const steps = 90; // 1.5 seconds prediction
+
+    for(let i=0; i<steps; i++) {
+        points.push(simPos.clone());
+        simVel.y += CONFIG.gravity * dt;
+        simPos.addScaledVector(simVel, dt);
+        if(simPos.y <= 0) break; // Floor hit
+    }
+
+    // Update Line
+    trajectoryLine.geometry.setFromPoints(points);
+    trajectoryLine.computeLineDistances(); // Essential for DashedMaterial
+
+    // Update Marker
+    if(points.length > 0) {
+        const last = points[points.length-1];
+        landingMarker.position.set(last.x, 0.06, last.z);
+    }
+}
+
+// --- GAME LOGIC ---
+
+function checkScoring() {
+    if(!isFlying) return;
+
+    // Detect if ball is near hoop
+    const dX = ballBody.position.x - 0; // Hoop X is 0
+    const dZ = ballBody.position.z - CONFIG.hoop.z;
+    const dist = Math.sqrt(dX*dX + dZ*dZ);
+
+    // Height check
+    // Hoop is at Y=18. Did we just cross it downwards?
+    const prevY = ballBody.previousPosition ? ballBody.previousPosition.y : ballBody.position.y;
+    
+    if (dist < CONFIG.hoop.radius - 1.3) { // Inside rim
+        if (prevY > CONFIG.hoop.y && ballBody.position.y <= CONFIG.hoop.y) {
+            // SCORE!
+            scorePoint();
+        }
+    }
+}
+
+function scorePoint() {
+    combo++;
+    score += (combo > 1 ? 2 : 1) * 2; // Double points
+    
+    updateHUD();
+    
+    // Effects
+    pulse([50, 50, 50]); // Pattern vibrate
+    shakeIntensity = 2.0;
+    
+    // Visual Spark
+    const color = combo > 2 ? CONFIG.colors.pink : CONFIG.colors.cyan;
+    hoopContainer.children[1].material.color.setHex(0xffffff); // Flash rim
+    setTimeout(() => hoopContainer.children[1].material.color.setHex(CONFIG.colors.pink), 200);
+
+    // Reset ball automatically after a moment
+    setTimeout(resetBall, 1500);
+}
+
+function updateHUD() {
+    document.getElementById('score').innerText = score.toString().padStart(2, '0');
+    const cBox = document.getElementById('combo-box');
+    if(combo > 1) {
+        cBox.classList.add('visible');
+        document.getElementById('combo-val').innerText = "x" + combo;
+    } else {
+        cBox.classList.remove('visible');
+    }
+}
+
+function resetBall() {
+    if(isFlying && ballBody.position.y < 5) combo = 0; // Reset combo if on floor
+    updateHUD();
+    spawnBall(ballBody.material);
+}
+
+// --- CAMERA & FEEDBACK ---
+
+function updateCamera(dt) {
+    if (isFlying) {
+        // Smart Cam: Find midpoint between ball and hoop
+        const bPos = ballMesh.position;
+        const hPos = new THREE.Vector3(0, CONFIG.hoop.y, CONFIG.hoop.z);
         
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(10, 50, 20);
-        scene.add(dirLight);
+        // Target is midpoint, but offset back
+        const midX = (bPos.x + hPos.x) / 2;
+        const midY = Math.max((bPos.y + hPos.y) / 2, 10); // Don't go too low
+        const midZ = (bPos.z + hPos.z) / 2;
 
-        // --- Materials ---
-        const materials = {
-            floorGrid: new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.15 }),
-            ball: new THREE.MeshStandardMaterial({ 
-                color: 0x000000, emissive: 0x00ffff, emissiveIntensity: 0.5, 
-                roughness: 0.2, metalness: 0.8, wireframe: true 
-            }),
-            ballFire: new THREE.MeshStandardMaterial({ 
-                color: 0x000000, emissive: 0xff00ff, emissiveIntensity: 1, 
-                roughness: 0.1, wireframe: true 
-            }),
-            rim: new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0x550000, roughness: 0.1 }),
-            backboard: new THREE.MeshStandardMaterial({ 
-                color: 0x000000, emissive: 0x00ffff, emissiveIntensity: 0.2, 
-                transparent: true, opacity: 0.8, side: THREE.DoubleSide
-            }),
-            aimLine: new THREE.LineBasicMaterial({ color: 0xff00ff }),
-            aimProjection: new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 1, gapSize: 0.5, opacity: 0.5, transparent: true }),
-            text: new THREE.SpriteMaterial({ color: 0xffffff })
-        };
-
-        // --- World Objects ---
-
-        // 1. Grid Floor
-        const gridHelper = new THREE.GridHelper(200, 50, 0x00ffff, 0x004444);
-        scene.add(gridHelper);
-
-        // 2. The Hoop
-        const hoopGroup = new THREE.Group();
-        hoopGroup.position.set(0, CONFIG.hoopHeight, CONFIG.hoopZ);
-        scene.add(hoopGroup);
-
-        // Rim
-        const rimGeo = new THREE.TorusGeometry(CONFIG.rimRadius, CONFIG.rimTube, 8, 32);
-        const rimMesh = new THREE.Mesh(rimGeo, materials.rim);
-        rimMesh.rotation.x = Math.PI / 2;
-        hoopGroup.add(rimMesh);
-
-        // Net (Procedural Lines)
-        const netGeo = new THREE.BufferGeometry();
-        const netPoints = [];
-        const strands = 12;
-        for(let i=0; i<strands; i++) {
-            const angle = (i / strands) * Math.PI * 2;
-            const x = Math.cos(angle) * CONFIG.rimRadius;
-            const z = Math.sin(angle) * CONFIG.rimRadius;
-            // Top point
-            netPoints.push(x, 0, z);
-            // Mid point (tapered)
-            const x2 = Math.cos(angle + 0.2) * (CONFIG.rimRadius * 0.7);
-            const z2 = Math.sin(angle + 0.2) * (CONFIG.rimRadius * 0.7);
-            netPoints.push(x2, -3, z2);
-            // Bottom point
-            netPoints.push(x2, -3, z2);
-            const x3 = Math.cos(angle) * (CONFIG.rimRadius * 0.4);
-            const z3 = Math.sin(angle) * (CONFIG.rimRadius * 0.4);
-            netPoints.push(x3, -5, z3);
-        }
-        netGeo.setAttribute('position', new THREE.Float32BufferAttribute(netPoints, 3));
-        const netMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
-        const netMesh = new THREE.LineSegments(netGeo, netMat);
-        hoopGroup.add(netMesh);
-
-        // Backboard
-        const bbGeo = new THREE.BoxGeometry(14, 10, 0.5);
-        const bbMesh = new THREE.Mesh(bbGeo, materials.backboard);
-        bbMesh.position.set(0, 4, -CONFIG.rimRadius - 2); // Slightly behind rim
+        const targetPos = new THREE.Vector3(midX + 20, midY + 5, midZ + 30); // Side view offset
         
-        // Add Grid pattern to backboard
-        const bbEdges = new THREE.EdgesGeometry(bbGeo);
-        const bbLine = new THREE.LineSegments(bbEdges, new THREE.LineBasicMaterial( { color: 0x00ffff } ) );
-        bbMesh.add( bbLine );
-        hoopGroup.add(bbMesh);
-
-        // Pole
-        const poleGeo = new THREE.CylinderGeometry(0.5, 0.5, 20);
-        const poleMesh = new THREE.Mesh(poleGeo, new THREE.MeshStandardMaterial({color: 0x222222}));
-        poleMesh.position.set(0, -5, -CONFIG.rimRadius - 4);
-        poleMesh.rotation.x = -0.2;
-        hoopGroup.add(poleMesh);
-
-        // --- Aiming Visualization ---
-        
-        // The pull line
-        const dragLineGeo = new THREE.BufferGeometry();
-        dragLineGeo.setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0)]);
-        const dragLine = new THREE.Line(dragLineGeo, materials.aimLine);
-        dragLine.frustumCulled = false;
-        scene.add(dragLine);
-
-        // The Trajectory arc
-        const trajectoryGeo = new THREE.BufferGeometry();
-        const trajectoryLine = new THREE.Line(trajectoryGeo, materials.aimProjection);
-        trajectoryLine.computeLineDistances(); // for dashed effect
-        scene.add(trajectoryLine);
-
-        // Text Sprites helpers
-        function createTextSprite(message, scale = 1) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = 256;
-            canvas.height = 128;
-            ctx.fillStyle = "rgba(0,0,0,0)";
-            ctx.fillRect(0,0,256,128);
-            ctx.font = "bold 40px 'Share Tech Mono'";
-            ctx.fillStyle = "#00ffff";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(message, 128, 64);
-            
-            const tex = new THREE.CanvasTexture(canvas);
-            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-            const sprite = new THREE.Sprite(mat);
-            sprite.scale.set(4 * scale, 2 * scale, 1);
-            return sprite;
-        }
-
-        const infoGroup = new THREE.Group();
-        scene.add(infoGroup);
-        
-        const labelPower = createTextSprite("PWR: 0%");
-        const labelAngle = createTextSprite("ANG: 0°");
-        const labelHeight = createTextSprite("H: 0m", 0.8);
-        
-        infoGroup.add(labelPower);
-        infoGroup.add(labelAngle);
-        infoGroup.add(labelHeight);
-        infoGroup.visible = false;
-
-        // --- Interaction Logic ---
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Floor plane
-
-        window.addEventListener('mousedown', onStart);
-        window.addEventListener('touchstart', (e) => onStart(e.touches[0]), {passive: false});
-
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('touchmove', (e) => { e.preventDefault(); onMove(e.touches[0]); }, {passive: false});
-
-        window.addEventListener('mouseup', onEnd);
-        window.addEventListener('touchend', onEnd);
-
-        function onStart(e) {
-            if(e.target.tagName === 'BUTTON') return; // Ignore button clicks
-
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-            raycaster.setFromCamera(mouse, camera);
-            const target = new THREE.Vector3();
-            raycaster.ray.intersectPlane(plane, target);
-
-            if (target) {
-                isDragging = true;
-                dragStart.copy(target);
-                dragCurrent.copy(target);
-                infoGroup.visible = true;
-            }
-        }
-
-        function onMove(e) {
-            if (!isDragging) return;
-
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-            raycaster.setFromCamera(mouse, camera);
-            const target = new THREE.Vector3();
-            raycaster.ray.intersectPlane(plane, target);
-
-            if (target) {
-                dragCurrent.copy(target);
-                updateAimVisuals();
-            }
-        }
-
-        function onEnd() {
-            if (!isDragging) return;
-            isDragging = false;
-            infoGroup.visible = false;
-            dragLine.visible = false;
-            trajectoryLine.visible = false;
-
-            // Shoot
-            const velocity = calculateLaunchVelocity();
-            if (velocity.length() > 2) {
-                spawnBall(dragStart.x, 1.5, dragStart.z, velocity);
-            }
-        }
-
-        function calculateLaunchVelocity() {
-            const diff = new THREE.Vector3().subVectors(dragStart, dragCurrent);
-            const power = Math.min(diff.length(), CONFIG.maxPull);
-            
-            // Convert drag vector to velocity
-            // Pulling BACK (positive z relative to camera) should shoot FORWARD (negative z)
-            const dir = diff.normalize();
-            
-            // Add some upward arc based on power
-            const upComponent = Math.min(power * 0.8, 25);
-            const fwdComponent = power * 1.5;
-
-            const vel = new THREE.Vector3(dir.x * fwdComponent, upComponent, dir.z * fwdComponent);
-            return vel;
-        }
-
-        function updateAimVisuals() {
-            // Update Drag Line
-            const positions = new Float32Array([
-                dragStart.x, 0.5, dragStart.z,
-                dragCurrent.x, 0.5, dragCurrent.z
-            ]);
-            dragLineGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            dragLine.visible = true;
-
-            // Physics Prediction
-            const velocity = calculateLaunchVelocity();
-            const points = [];
-            const simPos = new THREE.Vector3(dragStart.x, 1.5, dragStart.z);
-            const simVel = velocity.clone();
-            const dt = 1/60;
-            let maxH = 0;
-            let peakPos = new THREE.Vector3();
-
-            for(let i=0; i<60; i++) { // Simulate 1 second
-                points.push(simPos.clone());
-                simVel.y += CONFIG.gravity * dt;
-                simPos.addScaledVector(simVel, dt);
-                
-                if(simPos.y > maxH) {
-                    maxH = simPos.y;
-                    peakPos.copy(simPos);
-                }
-                if(simPos.y < 0) break;
-            }
-
-            trajectoryGeo.setFromPoints(points);
-            trajectoryLine.computeLineDistances();
-            trajectoryLine.visible = true;
-
-            // Update Labels
-            // 1. Position labels
-            labelPower.position.set(dragCurrent.x, 3, dragCurrent.z);
-            labelAngle.position.set(dragStart.x, 3, dragStart.z);
-            labelHeight.position.copy(peakPos).add(new THREE.Vector3(0, 2, 0));
-
-            // 2. Update Text (Lazy texture update)
-            const powerPct = Math.min(100, Math.floor((velocity.length() / (CONFIG.maxPull * 1.5)) * 100));
-            updateSpriteText(labelPower, `PWR: ${powerPct}%`);
-            
-            const angle = Math.atan2(velocity.y, Math.sqrt(velocity.x**2 + velocity.z**2)) * (180/Math.PI);
-            updateSpriteText(labelAngle, `${Math.floor(angle)}°`);
-            
-            updateSpriteText(labelHeight, `APEX: ${maxH.toFixed(1)}m`);
-        }
-
-        function updateSpriteText(sprite, text) {
-            // We recreate the canvas for the texture. 
-            // In a huge game this is bad, but for 3 sprites it's fine.
-            const canvas = sprite.material.map.image;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0,0,256,128);
-            ctx.fillStyle = "rgba(0,20,20,0.6)"; // Background box
-            ctx.fillRect(28, 30, 200, 68);
-            ctx.strokeStyle = "#00ffff";
-            ctx.strokeRect(28, 30, 200, 68);
-            
-            ctx.font = "bold 30px 'Share Tech Mono'";
-            ctx.fillStyle = "#ffffff";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(text, 128, 64);
-            
-            sprite.material.map.needsUpdate = true;
-        }
-
-        // --- Game Logic ---
-
-        class Ball {
-            constructor(x, y, z, vel) {
-                const geo = new THREE.SphereGeometry(CONFIG.ballRadius, 16, 16);
-                const mat = combo >= 3 ? materials.ballFire : materials.ball;
-                this.mesh = new THREE.Mesh(geo, mat);
-                this.mesh.position.set(x, y, z);
-                scene.add(this.mesh);
-
-                this.vel = vel;
-                this.active = true;
-                this.scored = false;
-                this.life = 5.0; // Seconds
-                this.trail = [];
-                this.rotAxis = new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize();
-            }
-
-            update(dt) {
-                if (!this.active) return;
-
-                // Physics Sub-stepping for collision accuracy
-                const steps = 5;
-                const subDt = dt / steps;
-
-                for (let i = 0; i < steps; i++) {
-                    this.stepPhysics(subDt);
-                }
-
-                this.mesh.position.addScaledVector(this.vel, dt);
-                this.mesh.rotateOnAxis(this.rotAxis, this.vel.length() * dt * 0.2);
-
-                // Life
-                this.life -= dt;
-                if (this.life <= 0) this.kill();
-
-                // Trail (Simple line trail)
-                // In a full engine we'd use a RibbonTrail, here simple particles or lines
-            }
-
-            stepPhysics(dt) {
-                // Gravity
-                this.vel.y += CONFIG.gravity * dt;
-
-                // Floor Collision
-                if (this.mesh.position.y < CONFIG.ballRadius) {
-                    this.mesh.position.y = CONFIG.ballRadius;
-                    this.vel.y *= -CONFIG.bounce;
-                    this.vel.x *= CONFIG.floorFriction;
-                    this.vel.z *= CONFIG.floorFriction;
-                    
-                    if (Math.abs(this.vel.y) < 1) this.vel.y = 0;
-                    if(!this.scored) resetCombo();
-                }
-
-                // Walls (Invisible boundaries)
-                if (Math.abs(this.mesh.position.x) > 100 || Math.abs(this.mesh.position.z) > 100) {
-                    this.kill();
-                }
-
-                this.checkHoopCollision();
-            }
-
-            checkHoopCollision() {
-                // Hoop local vars
-                const hPos = hoopGroup.position;
-                
-                // 1. Backboard Collision (AABB approx)
-                // Box relative to hoop center: z ~ -4.5 - 2 = -6.5
-                const bbZ = hPos.z - CONFIG.rimRadius - 2; 
-                // Simple Plane check for front of backboard
-                if (this.mesh.position.z < bbZ + 1.5 && this.mesh.position.z > bbZ - 1) {
-                    if (Math.abs(this.mesh.position.x - hPos.x) < 7 && 
-                        this.mesh.position.y > hPos.y && this.mesh.position.y < hPos.y + 10) {
-                        
-                        if (this.vel.z < 0) { // Moving towards backboard
-                            this.vel.z *= -CONFIG.bounce;
-                            this.mesh.position.z = bbZ + 1.5 + 0.1;
-                            createSparks(this.mesh.position, 0x00ffff);
-                        }
-                    }
-                }
-
-                // 2. Rim Collision (Torus distance check)
-                // Distance to the "ring" of the torus
-                // Project ball pos onto the plane of the rim (y = hPos.y)
-                const dx = this.mesh.position.x - hPos.x;
-                const dz = this.mesh.position.z - hPos.z;
-                const distFromCenter = Math.sqrt(dx*dx + dz*dz);
-                
-                // The "Tube" of the rim is at radius R from center
-                const tubeDist = Math.sqrt(
-                    Math.pow(distFromCenter - CONFIG.rimRadius, 2) + 
-                    Math.pow(this.mesh.position.y - hPos.y, 2)
-                );
-
-                if (tubeDist < CONFIG.rimTube + CONFIG.ballRadius) {
-                    // Collision Normal
-                    const angle = Math.atan2(dz, dx);
-                    const closestX = hPos.x + Math.cos(angle) * CONFIG.rimRadius;
-                    const closestZ = hPos.z + Math.sin(angle) * CONFIG.rimRadius;
-                    const closestY = hPos.y;
-
-                    const normal = new THREE.Vector3(
-                        this.mesh.position.x - closestX,
-                        this.mesh.position.y - closestY,
-                        this.mesh.position.z - closestZ
-                    ).normalize();
-
-                    // Reflect
-                    const vDotN = this.vel.dot(normal);
-                    this.vel.sub(normal.multiplyScalar(2 * vDotN)).multiplyScalar(0.6);
-                    
-                    // Push out
-                    const overlap = (CONFIG.rimTube + CONFIG.ballRadius) - tubeDist;
-                    this.mesh.position.addScaledVector(normal, overlap);
-                    
-                    createSparks(this.mesh.position, 0xffffff);
-                }
-
-                // 3. Scoring
-                // Check if ball crosses plane Y downwards, inside radius
-                if (!this.scored && this.vel.y < 0) {
-                    if (Math.abs(this.mesh.position.y - hPos.y) < 1) {
-                         if (distFromCenter < CONFIG.rimRadius - CONFIG.rimTube - CONFIG.ballRadius + 0.5) {
-                             handleScore(this.mesh.position);
-                             this.scored = true;
-                         }
-                    }
-                }
-            }
-
-            kill() {
-                this.active = false;
-                scene.remove(this.mesh);
-                this.mesh.geometry.dispose(); // Cleanup
-            }
-        }
-
-        function spawnBall(x, y, z, vel) {
-            balls.push(new Ball(x, y, z, vel));
-            if (balls.length > 8) {
-                balls[0].kill();
-                balls.shift();
-            }
-        }
-
-        function createSparks(pos, colorHex) {
-            const geom = new THREE.BufferGeometry();
-            const count = 10;
-            const positions = new Float32Array(count * 3);
-            const vels = [];
-            
-            for(let i=0; i<count; i++) {
-                positions[i*3] = pos.x;
-                positions[i*3+1] = pos.y;
-                positions[i*3+2] = pos.z;
-                vels.push(new THREE.Vector3(
-                    (Math.random()-0.5)*10, 
-                    (Math.random()-0.5)*10, 
-                    (Math.random()-0.5)*10
-                ));
-            }
-            
-            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const mat = new THREE.PointsMaterial({color: colorHex, size: 0.5, transparent: true});
-            const points = new THREE.Points(geom, mat);
-            scene.add(points);
-            
-            particles.push({ mesh: points, vels: vels, life: 30 });
-        }
-
-        function handleScore(pos) {
-            combo++;
-            let pts = 1 + Math.floor(combo/2);
-            score += pts;
-            
-            if(score > highscore) {
-                highscore = score;
-                localStorage.setItem('vh3d_high', highscore);
-            }
-
-            // UI
-            updateUI();
-            
-            // Effect
-            createSparks(pos, 0x00ff00);
-            
-            // Move Hoop
-            moveHoop();
-        }
-
-        function resetCombo() {
-            if (combo > 1) {
-                // maybe sound effect
-            }
-            combo = 0;
-            updateUI();
-        }
-
-        function moveHoop() {
-            // Random X and slightly random Z
-            const targetX = (Math.random() - 0.5) * 40;
-            const targetZ = -20 - Math.random() * 20;
-            
-            // Simple tween logic could go here, for now teleport
-            hoopGroup.position.set(targetX, CONFIG.hoopHeight, targetZ);
-        }
-
-        function updateUI() {
-            document.getElementById('score').innerText = score.toString().padStart(2, '0');
-            document.getElementById('highscore').innerText = highscore.toString().padStart(2, '0');
-            const cBox = document.getElementById('combo-container');
-            const cVal = document.getElementById('combo-val');
-            
-            if(combo > 1) {
-                cBox.classList.add('active');
-                cVal.innerText = "x" + combo;
-                cVal.style.color = combo >= 5 ? '#fff' : '#f0f';
-            } else {
-                cBox.classList.remove('active');
-            }
-        }
-        document.getElementById('highscore').innerText = highscore;
-
-        // --- Main Loop ---
-        const clock = new THREE.Clock();
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            const dt = Math.min(clock.getDelta(), 0.1); // Cap dt
-
-            // Update Balls
-            balls.forEach(b => b.update(dt));
-            balls = balls.filter(b => b.active);
-
-            // Update Particles
-            for(let i=particles.length-1; i>=0; i--) {
-                let p = particles[i];
-                p.life--;
-                const positions = p.mesh.geometry.attributes.position.array;
-                for(let j=0; j<p.vels.length; j++) {
-                    positions[j*3] += p.vels[j].x * dt;
-                    positions[j*3+1] += p.vels[j].y * dt;
-                    positions[j*3+2] += p.vels[j].z * dt;
-                }
-                p.mesh.geometry.attributes.position.needsUpdate = true;
-                p.mesh.material.opacity = p.life / 30;
-                
-                if(p.life <= 0) {
-                    scene.remove(p.mesh);
-                    particles.splice(i, 1);
-                }
-            }
-
-            controls.update();
-            
-            // Bloom Compositor
-            composer.render();
-        }
-
-        // --- UI Events ---
-        document.getElementById('cam-toggle').addEventListener('click', (e) => {
-            isFreeCam = !isFreeCam;
-            controls.enabled = isFreeCam;
-            e.target.innerText = isFreeCam ? "Free Cam [ON]" : "Free Cam [OFF]";
-            e.target.classList.toggle('active');
-            
-            if(!isFreeCam) {
-                // Reset smoothly (simple lerp not implemented, hard reset)
-                camera.position.set(defaultCamPos.x, defaultCamPos.y, defaultCamPos.z);
-                camera.lookAt(0,0,0);
-                controls.target.set(0,0,0);
-            }
-        });
-
-        document.getElementById('reset-cam').addEventListener('click', () => {
-            camera.position.set(defaultCamPos.x, defaultCamPos.y, defaultCamPos.z);
-            controls.target.set(0,0,0);
-            controls.update();
-        });
-
-        // Resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        animate();
-
-    </script>
+        // Smooth lerp
+        camera.position.lerp(targetPos, dt * 2);
+        camera.lookAt(midX, midY, midZ);
+    } else {
+        // Reset Cam lerp
+        camera.position.lerp(CONFIG.cam.start, dt * 3);
+        // Simple lookat center
+        const currentLook = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).add(camera.position);
+        const desiredLook = CONFIG.cam.lookAt;
+        // This part is simplified, Orbit controls logic or simple lookat is safer
+        camera.lookAt(CONFIG.cam.lookAt);
+    }
+
+    // Screen Shake
+    if (shakeIntensity > 0) {
+        const rx = (Math.random() - 0.5) * shakeIntensity * 0.5;
+        const ry = (Math.random() - 0.5) * shakeIntensity * 0.5;
+        camera.position.x += rx;
+        camera.position.y += ry;
+        shakeIntensity *= 0.9;
+        if(shakeIntensity < 0.1) shakeIntensity = 0;
+    }
+}
+
+function resetCamera() {
+    // Instant
+    // camera.position.copy(CONFIG.cam.start);
+    // camera.lookAt(CONFIG.cam.lookAt);
+}
+
+function pulse(pattern) {
+    if (navigator.vibrate) {
+        navigator.vibrate(pattern);
+    }
+}
+
+// --- ANIMATION LOOP ---
+
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    const dt = Math.min(clock.getDelta(), 0.1);
+
+    // Physics Step
+    world.step(1/60, dt, CONFIG.substeps);
+
+    // Sync Visuals
+    ballMesh.position.copy(ballBody.position);
+    ballMesh.quaternion.copy(ballBody.quaternion);
+    
+    // Store prev position for scoring logic
+    if(!ballBody.previousPosition) ballBody.previousPosition = new CANNON.Vec3();
+    
+    // Game Logic
+    checkScoring();
+    ballBody.previousPosition.copy(ballBody.position);
+
+    // Reset if ball falls into void
+    if (ballBody.position.y < -10) {
+        combo = 0;
+        resetBall();
+    }
+
+    updateCamera(dt);
+
+    // Render
+    composer.render();
+}
+
+function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Start
+init();
+
+</script>
 </body>
 </html>
