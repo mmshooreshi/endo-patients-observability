@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Plant Biotech Dashboard: Agrobacterium & Gene Transfer</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        :root {
+            --bg-dark: #020617; /* Deepest Navy */
+            --bg-card: rgba(15, 23, 42, 0.85);
+            --accent-green: #00ff9d; /* Neon Green */
+            --accent-blue: #38bdf8; /* Mechanism Blue */
+            --accent-red: #fb7185; /* Trap Red */
+            --accent-gold: #facc15; /* Concept Gold */
+            --accent-purple: #c084fc; /* Enzyme Purple */
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            padding: 10px;
+            font-size: 13.5px; /* Dense text */
+            line-height: 1.5;
+            padding-bottom: 50px;
+        }
+
+        /* -------------------
+           HIGHLIGHT STYLES
+           ------------------- */
+        .core { color: var(--accent-gold); font-weight: 700; border-bottom: 1px dotted var(--accent-gold); }
+        .mech { color: var(--accent-blue); font-weight: 600; display: inline-block; }
+        .trap { 
+            color: var(--accent-red); 
+            font-weight: 700; 
+            background: rgba(251, 113, 133, 0.15); 
+            padding: 1px 5px; 
+            border-radius: 4px;
+            border: 1px solid rgba(251, 113, 133, 0.3);
+        }
+        .enz { color: var(--accent-purple); font-weight: 700; font-family: 'Consolas', monospace; font-size: 1.05em; }
+        .comp { 
+            color: var(--accent-green); 
+            border: 1px solid var(--accent-green); 
+            padding: 0 4px; 
+            border-radius: 3px; 
+            font-size: 0.85em; 
+            vertical-align: middle;
+            font-weight: 600;
+        }
+        .eng { font-family: 'Consolas', monospace; font-size: 0.95em; color: #a7f3d0; direction: ltr; display: inline-block; }
+
+        /* -------------------
+           BENTO GRID
+           ------------------- */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-auto-rows: minmax(100px, auto);
+            gap: 12px;
+            max-width: 100%;
+        }
+
+        /* Mobile First: Stacked by default */
+        @media (max-width: 768px) {
+            .bento-grid { display: flex; flex-direction: column; }
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            color: var(--accent-green);
+            margin-bottom: 12px;
+            border-right: 3px solid var(--accent-green);
+            padding-right: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card h3 {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            margin: 12px 0 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 4px;
+        }
+
+        /* -------------------
+           SPECIFIC TILES
+           ------------------- */
+        /* A: Markers (Top Left) */
+        .tile-markers { grid-column: span 8; grid-row: span 2; }
+        
+        /* B: Agrobacterium Mech (Right Vertical) */
+        .tile-mech { grid-column: span 4; grid-row: span 3; }
+
+        /* C: Vector Systems (Mid Left) */
+        .tile-vectors { grid-column: span 8; grid-row: span 2; }
+
+        /* D: Trap Zone (Bottom Bar) */
+        .tile-traps { grid-column: span 12; background: rgba(60, 20, 30, 0.6); border-color: var(--accent-red); }
+
+        /* E: Exam Simulator (Full Width) */
+        .tile-exam { grid-column: span 12; }
+
+        /* -------------------
+           COMPONENTS
+           ------------------- */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 5px; }
+        th { text-align: right; color: var(--accent-blue); border-bottom: 1px solid var(--accent-blue); padding: 4px; }
+        td { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 6px 4px; vertical-align: top; }
+        
+        ul { list-style: none; padding-right: 5px; }
+        li { margin-bottom: 6px; position: relative; padding-right: 12px; }
+        li::before { content: "•"; color: var(--accent-green); position: absolute; right: 0; top: 0; }
+
+        .flow-node {
+            background: rgba(0,0,0,0.3);
+            border-right: 2px solid var(--accent-blue);
+            padding: 8px;
+            margin-bottom: 8px;
+            font-size: 12.5px;
+        }
+
+        /* MCQ Styles */
+        .mcq-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+        .mcq-card { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; }
+        .mcq-q { font-weight: 700; color: #fff; margin-bottom: 6px; font-size: 13px; }
+        details { margin-top: 5px; }
+        summary { cursor: pointer; color: var(--accent-green); font-size: 12px; user-select: none; }
+        .feedback {
+            background: rgba(0, 255, 157, 0.08);
+            border-right: 2px solid var(--accent-green);
+            padding: 8px;
+            margin-top: 5px;
+            border-radius: 4px;
+            color: #d1d5db;
+            font-size: 12px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="bento-grid">
+
+        <article class="card tile-markers">
+            <h2>🧬 نشانگرها و گزارشگرها (Markers & Reporters)</h2>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                
+                <div style="flex: 1; min-width: 250px;">
+                    <h3>ژن‌های گزارشگر (Visual Markers)</h3>
+                    <ul>
+                        <li>
+                            <span class="eng">GFP</span>: از عروس دریایی <span class="eng">A. victoria</span>. پروتئین کوچک (238 aa). 
+                            <span class="mech">بدون نیاز به سوبسترا</span> یا کوفاکتور. فلورسنس به خاطر کروموفور <span class="enz">B-hydroxy benzylidine imidazolinone</span> است.
+                            <br><span class="trap">غیرتخریبی (In vivo)</span>.
+                        </li>
+                        <li>
+                            <span class="eng">Anthocyanins</span>: ژن‌های تنظیمی <span class="enz">C1, B, R</span> ذرت.
+                            <span class="mech">تولید رنگ قرمز/ارغوانی</span>. 
+                            <span class="trap">مزیت:</span> غیر سمی، بدون نیاز به سوبسترا، قابل مشاهده چشمی.
+                        </li>
+                    </ul>
+                </div>
+
+                <div style="flex: 1.5; min-width: 300px;">
+                    <h3>نشانگرهای گزینشگر (Selectable Markers)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ژن (Gene)</th>
+                                <th>منشاء</th>
+                                <th>مکانیسم / آنتی‌بیوتیک</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="enz">nptII</span></td>
+                                <td>Tn5</td>
+                                <td>فسفریلاسیون کانامایسین/نئومایسین. <span class="comp">پرکاربردترین</span>.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="enz">hpt</span></td>
+                                <td>E.coli</td>
+                                <td><span class="trap">بسیار سمی‌تر</span> از کانامایسین. مرگ سریع بافت حساس.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="enz">bar / pat</span></td>
+                                <td>Streptomyces</td>
+                                <td>استیلاسیون علف‌کش <span class="eng">PPT</span> (بیالوفوس). جلوگیری از تجمع <span class="eng">NH3</span>.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="enz">aadA</span></td>
+                                <td>Tn7</td>
+                                <td>اسپکتینومایسین. <span class="trap">بافت سفید می‌شود اما نمی‌میرد</span> (تمایز رنگی).</td>
+                            </tr>
+                            <tr>
+                                <td><span class="enz">aroA</span></td>
+                                <td>Salmonella</td>
+                                <td>مقاومت به گلیفوسیت. ژن <span class="enz">EPSPS</span> جهش‌یافته (عدم اتصال سم).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </article>
+
+        <article class="card tile-mech">
+            <h2>🦠 مکانیسم آگروباکتریوم (Virulence)</h2>
+            <p style="margin-bottom:10px; color:var(--text-muted);">ژن‌های <span class="comp">vir</span> (روی پلاسمید Ti) + ژن‌های کروموزومی (<span class="eng">chvA, chvB</span> برای اتصال) ضروری‌اند.</p>
+            
+            <div class="flow-node">
+                <span class="core">1. اتصال (Attachment):</span><br>
+                ژن‌های کروموزومی <span class="enz">chvA, chvB</span> مسئول تولید گلوکان‌های حلقوی و اتصال باکتری به گیرنده گیاهی هستند. <span class="trap">جهش در این‌ها = عدم اتصال.</span>
+            </div>
+
+            <div class="flow-node">
+                <span class="core">2. ادراک (Sensing):</span><br>
+                <span class="enz">VirA</span> (حسگر غشایی) <span class="eng">Acetosyringone</span> (فنل زخم) و pH اسیدی را حس می‌کند → فسفریله می‌شود.
+            </div>
+
+            <div class="flow-node">
+                <span class="core">3. فعال‌سازی (Signal Transduction):</span><br>
+                <span class="enz">VirA</span> فسفات را به <span class="enz">VirG</span> می‌دهد. <span class="enz">VirG</span> (فاکتور رونویسی) تمام اپرون‌های <span class="eng">vir</span> را روشن می‌کند.
+            </div>
+
+            <div class="flow-node">
+                <span class="core">4. برش T-DNA (Nicking):</span><br>
+                کمپلکس <span class="enz">VirD1/VirD2</span> مرزهای <span class="comp">LB</span> و <span class="comp">RB</span> را می‌شناسد. <span class="enz">VirD2</span> رشته پایین را می‌برد و به انتهای '5 کووالانسی متصل می‌شود (خلبان).
+            </div>
+
+            <div class="flow-node">
+                <span class="core">5. حفاظت و انتقال (Transport):</span><br>
+                <span class="enz">VirE2</span> (پروتئین اتصالی تک‌رشته‌ای) سرتاسر T-DNA را می‌پوشاند (جلوگیری از هضم). انتقال از کانال <span class="enz">VirB</span> (Type IV Secretion).
+            </div>
+             
+             
+
+            <div class="flow-node">
+                <span class="core">6. ورود هسته (Import):</span><br>
+                <span class="enz">VirD2</span> و <span class="enz">VirE2</span> دارای سیگنال <span class="eng">NLS</span> گیاهی هستند.
+            </div>
+        </article>
+
+        <article class="card tile-vectors">
+            <h2>⚙️ ناقل‌ها و روش‌های انتقال (Vectors & Methods)</h2>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <h3>استراتژی‌های ناقل (Vector Systems)</h3>
+                    <ul>
+                        <li>
+                            <span class="core">ناقل هم‌تلفیقی (Co-integrate):</span>
+                            پلاسمید <span class="eng">pBR322</span> باکتریایی باید با پلاسمید Ti خلع سلاح شده در آگروباکتریوم <span class="mech">نوترکیب (Recombine)</span> شود. 
+                            <span class="trap">نکته: نیاز به همولوژی DNA دارد.</span>
+                        </li>
+                        <li>
+                            <span class="core">ناقل دوتایی (Binary Vector):</span>
+                            <span class="comp">pBin19</span> یا <span class="comp">pBI121</span>. 
+                            ژن <span class="comp">vir</span> روی پلاسمید کمکی (Helper) است و T-DNA روی پلاسمید کوچک.
+                            <span class="trap">نکته: هیچ نوترکیبی در باکتری رخ نمی‌دهد.</span> دو پلاسمید جداگانه کار می‌کنند (Trans-acting).
+                        </li>
+                        <li>
+                            <span class="core">pGreen:</span> ناقل بسیار کوچک (3.5kb). ژن‌های تکثیر (Rep) را حذف کرده و روی پلاسمید کمکی (pSoup) گذاشته است.
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3>انتقال "In Planta" (بدون کشت بافت)</h3>
+                    <ul>
+                        <li>
+                            <span class="core">Floral Dip (غوطه‌وری گل):</span>
+                            ابداع برای <span class="eng">Arabidopsis</span>.
+                            غوطه‌وری غنچه‌ها در سوسپانسیون باکتری + ساکارز + <span class="enz">Silwet L-77</span> (سورفکتانت).
+                            <span class="mech">هدف:</span> تراریزش سلول تخم (Gametogenesis).
+                            <span class="trap">مزیت:</span> عدم تغییرات سوماکلونال، سرعت بالا.
+                        </li>
+                        <li>
+                            <span class="core">Vacuum Infiltration:</span>
+                            ایجاد مکش برای نفوذ باکتری به بافت. اولین بار برای آرابیدوپسیس، سپس یونجه و کلزا.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.1); padding-top:5px;">
+                <span class="core">بهینه‌سازی کدون (Codon Optimization):</span>
+                ژن‌های باکتریایی (مثل <span class="eng">Bt</span>) دارای <span class="mech">Codon Bias</span> متفاوت با گیاه هستند (A/T rich vs G/C rich). برای بیان بالا در گیاه، توالی نوکلئوتیدی تغییر می‌کند اما توالی آمینواسیدی <span class="trap">ثابت می‌ماند</span>.
+            </div>
+        </article>
+
+        <article class="card tile-traps">
+            <h2>⚠️ تله‌های تستی (The Exam Trap Zone)</h2>
+            <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap:10px;">
+                <div style="flex:1;">
+                    <span class="trap">مرز T-DNA:</span> تنها توالی که <span class="core">حتماً</span> باید به گیاه منتقل شود، مرزها نیستند؛ بلکه مرزها (LB/RB) تنها توالی‌ای هستند که برای <strong>عمل انتقال</strong> ضروری‌اند. ژن‌های <span class="eng">vir</span> منتقل نمی‌شوند!
+                </div>
+                <div style="flex:1;">
+                    <span class="trap">رنگ کلنی pBin19:</span> کلنی <strong>سفید</strong> = نوترکیب (ژن وارد شده و LacZ تخریب شده). کلنی <strong>آبی</strong> = فاقد ژن (LacZ سالم).
+                </div>
+                <div style="flex:1;">
+                    <span class="trap">تعریف گونه:</span> در آگروباکتریوم، نوع پلاسمید (Ti یا Ri) گونه را تعیین می‌کند، نه کروموزوم. پلاسمید Ti را به <span class="eng">A. rhizogenes</span> بدهید، تومور تولید می‌کند!
+                </div>
+                <div style="flex:1;">
+                    <span class="trap">Overdrive:</span> توالی کنار <span class="comp">RB</span> (خارج از T-DNA) که انتقال را تشدید می‌کند (نقش Enhancer).
+                </div>
+            </div>
+        </article>
+
+        <article class="card tile-exam">
+            <h2>📝 شبیه‌ساز آزمون (Exam Simulator)</h2>
+            <div class="mcq-grid">
+                
+                <div class="mcq-card">
+                    <div class="mcq-q">1. نقش آنزیم فسفینوتریسین استیل ترانسفراز (PAT) چیست؟</div>
+                    <details>
+                        <summary>نمایش پاسخ</summary>
+                        <div class="feedback">
+                            <strong>پاسخ: سم‌زدایی علف‌کش PPT.</strong><br>
+                            ژن <span class="eng">bar</span> این آنزیم را کد می‌کند که با استیله کردن علف‌کش (بیالوفوس)، مانع مهار گلوتامین سنتتاز (GS) و تجمع آمونیاک می‌شود.
+                        </div>
+                    </details>
+                </div>
+
+                <div class="mcq-card">
+                    <div class="mcq-q">2. در سنتز رشته T (T-strand)، پرایمر از کجا تامین می‌شود؟</div>
+                    <details>
+                        <summary>نمایش پاسخ</summary>
+                        <div class="feedback">
+                            <strong>پاسخ: آزاد شدن انتهای '3 در محل برش (Nick).</strong><br>
+                            پس از برش توسط VirD2 در <span class="comp">RB</span>، انتهای '3 آزاد شده به عنوان پرایمر برای DNA پلیمراز عمل می‌کند. سنتز از RB شروع و به سمت LB می‌رود.
+                        </div>
+                    </details>
+                </div>
+
+                <div class="mcq-card">
+                    <div class="mcq-q">3. چرا پروموتور CaMV 35S همیشه مناسب نیست؟</div>
+                    <details>
+                        <summary>نمایش پاسخ</summary>
+                        <div class="feedback">
+                            <strong>پاسخ: در تک‌لپه‌ای‌ها ضعیف است.</strong><br>
+                            برای غلات (ذرت/برنج) بهتر است از پروموتور <span class="eng">Ubiquitin</span> ذرت یا <span class="eng">Actin</span> برنج استفاده شود.
+                        </div>
+                    </details>
+                </div>
+
+                <div class="mcq-card">
+                    <div class="mcq-q">4. تفاوت اصلی نشانگرهای "اکتوپین" و "نوپالین" در چیست؟</div>
+                    <details>
+                        <summary>نمایش پاسخ</summary>
+                        <div class="feedback">
+                            <strong>پاسخ: ساختار T-DNA.</strong><br>
+                            پلاسمید اکتوپین دارای دو T-DNA جداگانه (<span class="eng">TL</span> و <span class="eng">TR</span>) است، اما نوپالین یک T-DNA پیوسته دارد.
+                        </div>
+                    </details>
+                </div>
+
+                <div class="mcq-card">
+                    <div class="mcq-q">5. ژن tms2 در T-DNA چه کاری انجام می‌دهد؟</div>
+                    <details>
+                        <summary>نمایش پاسخ</summary>
+                        <div class="feedback">
+                            <strong>پاسخ: تبدیل ایندول استامید به IAA (اکسین).</strong><br>
+                            مسیر اکسین دو مرحله‌ای است: <span class="eng">tms1</span> (تریپتوفان → IAM) و <span class="eng">tms2</span> (IAM → IAA).
+                        </div>
+                    </details>
+                </div>
+
+                <div class="mcq-card">
+                    <div class="mcq-q">6. در روش Agroinfection، هدف نهایی چیست؟</div>
+                    <details>
+                        <summary>نمایش پاسخ</summary>
+                        <div class="feedback">
+                            <strong>پاسخ: ایجاد آلودگی ویروسی سیستمیک.</strong><br>
+                            ما کل گیاه را تراریخته نمی‌کنیم؛ بلکه ژنوم ویروس را وارد می‌کنیم تا ویروس تکثیر شده و در گیاه پخش شود (مطالعه ویروس).
+                        </div>
+                    </details>
+                </div>
+
+                <div class="mcq-card">
+                    <div class="mcq-q">7. کدام ژن vir به صورت "ساختمانی" (Constitutive) بیان می‌شود؟</div>
+                    <details>
+                        <summary>نمایش پاسخ</summary>
+                        <div class="feedback">
+                            <strong>پاسخ: virA و virG.</strong><br>
+                            این دو همیشه بیان می‌شوند تا بتوانند سیگنال‌های محیطی را رصد کنند. سایرین القایی هستند.
+                        </div>
+                    </details>
+                </div>
+
+                <div class="mcq-card">
+                    <div class="mcq-q">8. مزیت استفاده از ژن‌های کلروپلاستی (مثل EPSPS باکتریایی) چیست؟</div>
+                    <details>
+                        <summary>نمایش پاسخ</summary>
+                        <div class="feedback">
+                            <strong>پاسخ: نیاز به پپتید نشانه (Transit Peptide).</strong><br>
+                            ژن‌های باکتریایی (EPSPS) پروکاریوتی‌اند و سیگنال هدف‌گیری ندارند. برای انتقال آنزیم به کلروپلاست (محل اثر علف‌کش)، باید توالی رهبر به آن افزود.
+                        </div>
+                    </details>
+                </div>
+
+            </div>
+        </article>
+
+    </div>
+
+</body>
+</html>
