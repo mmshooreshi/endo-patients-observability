@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Curator Sandbox Redux</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Base Setup */
+        body { margin: 0; overflow: hidden; background-color: #050505; touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+        #canvas-container { position: fixed; inset: 0; z-index: 1; outline: none; }
+        
+        /* Glassmorphism & UI */
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+        
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-btn:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.15); }
+        
+        /* Floating Labels */
+        .label-marker {
+            position: absolute;
+            padding: 8px 16px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            border-radius: 4px;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(255,255,255,0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+
+        /* Loading */
+        #loader {
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+        }
+        
+        /* Range Sliders */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px;
+            border-radius: 50%; background: #fff; margin-top: -6px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-200 antialiased">
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+    <div id="labels-container"></div>
+
+    <!-- Loading Screen -->
+    <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-1000">
+        <div class="relative w-24 h-24 mb-6">
+            <div class="absolute inset-0 border-t-2 border-white rounded-full animate-spin"></div>
+            <div class="absolute inset-2 border-r-2 border-gray-500 rounded-full animate-spin reverse" style="animation-direction: reverse; animation-duration: 2s;"></div>
+        </div>
+        <h1 class="text-3xl font-light tracking-[0.3em] uppercase text-white mb-2">Gallery<span class="font-bold">OS</span></h1>
+        <p id="loading-text" class="text-xs text-gray-500 tracking-widest">Building Environment...</p>
+    </div>
+
+    <!-- Main HUD -->
+    <div id="hud" class="fixed inset-0 z-20 pointer-events-none opacity-0 transition-opacity duration-1000">
+        
+        <!-- Top Controls -->
+        <div class="absolute top-0 left-0 w-full p-6 flex justify-between items-start pointer-events-auto">
+            <button onclick="app.resetView()" class="glass-btn rounded-full px-6 py-2 text-xs font-bold tracking-widest hover:bg-white/10 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                OVERVIEW
+            </button>
+            <div class="text-right hidden md:block">
+                <p class="text-[10px] text-gray-500 tracking-[0.2em] uppercase">Curator Mode</p>
+                <p class="text-xs font-bold tracking-widest text-white">ACTIVE</p>
+            </div>
+        </div>
+
+        <!-- Center Reticle (Subtle) -->
+        <div class="absolute top-1/2 left-1/2 w-1 h-1 bg-white/50 rounded-full -translate-x-1/2 -translate-y-1/2 mix-blend-difference"></div>
+
+        <!-- Bottom Navigation Bar -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 pointer-events-auto">
+            <button id="btn-back" onclick="app.stepBack()" class="glass-btn w-14 h-14 rounded-full flex items-center justify-center text-white/80 opacity-50 hover:opacity-100 disabled:opacity-20 transition-all">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+            </button>
+            <div class="glass-btn px-6 h-14 rounded-full flex items-center justify-center text-xs tracking-widest text-white/60">
+                <span id="status-text">TAP FLOOR TO WALK</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Artwork Detail & Lighting Panel -->
+    <div id="art-panel" class="fixed bottom-0 left-0 w-full glass-panel transform translate-y-full transition-transform duration-500 z-30 pointer-events-auto rounded-t-3xl md:rounded-t-none">
+        <div class="max-w-4xl mx-auto p-8 pb-12">
+            <!-- Header -->
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 id="art-title" class="text-2xl md:text-3xl font-light text-white leading-tight">Artwork Title</h2>
+                    <p id="art-artist" class="text-emerald-500 text-xs font-bold tracking-[0.2em] uppercase mt-1">Artist Name</p>
+                </div>
+                <button onclick="app.closePanel()" class="p-2 bg-white/5 rounded-full hover:bg-white/20 transition">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex border-b border-white/10 mb-6 gap-6">
+                <button onclick="app.switchTab('info')" id="tab-info" class="pb-2 text-sm text-white font-medium border-b-2 border-white">Info</button>
+                <button onclick="app.switchTab('light')" id="tab-light" class="pb-2 text-sm text-gray-500 hover:text-white transition">Lighting</button>
+            </div>
+
+            <!-- Content: Info -->
+            <div id="content-info" class="text-gray-400 text-sm leading-relaxed font-light">
+                <p id="art-desc">Description goes here...</p>
+            </div>
+
+            <!-- Content: Lighting Controls -->
+            <div id="content-light" class="hidden grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between text-[10px] uppercase tracking-widest text-gray-500 mb-2">Intensity</div>
+                        <input type="range" id="light-intensity" min="0" max="2" step="0.1" oninput="app.updateLight('intensity', this.value)">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-[10px] uppercase tracking-widest text-gray-500 mb-2">Spot Angle</div>
+                        <input type="range" id="light-angle" min="0.1" max="1.0" step="0.05" oninput="app.updateLight('angle', this.value)">
+                    </div>
+                </div>
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-gray-500 mb-3">Gel Filter</div>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="app.setLightColor(0xffffff)" class="w-8 h-8 rounded-full bg-white border border-white/30"></button>
+                        <button onclick="app.setLightColor(0xffaa77)" class="w-8 h-8 rounded-full bg-[#ffaa77] border border-white/30"></button>
+                        <button onclick="app.setLightColor(0xaaddff)" class="w-8 h-8 rounded-full bg-[#aaddff] border border-white/30"></button>
+                        <button onclick="app.setLightColor(0xff7777)" class="w-8 h-8 rounded-full bg-[#ff7777] border border-white/30"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modules -->
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module.js';
+        import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
+        import { TWEEN } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/libs/tween.module.min.js';
+
+        // --- Configuration ---
+        const CONFIG = {
+            colors: {
+                bg: 0x050505,
+                fog: 0x050505,
+                floor: 0x111111
+            },
+            assets: {
+                // Reliable High-Res Art (Wikimedia/Public Domain)
+                art: [
+                    { 
+                        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg", 
+                        title: "The Starry Night", 
+                        artist: "Vincent van Gogh", 
+                        ratio: 1.2 
+                    },
+                    { 
+                        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Vincent_van_Gogh_-_Self-Portrait_-_Google_Art_Project_%28454045%29.jpg/800px-Vincent_van_Gogh_-_Self-Portrait_-_Google_Art_Project_%28454045%29.jpg", 
+                        title: "Self Portrait", 
+                        artist: "Vincent van Gogh", 
+                        ratio: 0.8 
+                    },
+                    { 
+                        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Piet_Mondrian_-_Composition_with_Red%2C_Yellow%2C_Blue%2C_and_Black_-_Google_Art_Project.jpg/1024px-Piet_Mondrian_-_Composition_with_Red%2C_Yellow%2C_Blue%2C_and_Black_-_Google_Art_Project.jpg", 
+                        title: "Composition II", 
+                        artist: "Piet Mondrian", 
+                        ratio: 1.0 
+                    },
+                    { 
+                        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/The_Great_Wave_off_Kanagawa.jpg/1280px-The_Great_Wave_off_Kanagawa.jpg", 
+                        title: "The Great Wave", 
+                        artist: "Hokusai", 
+                        ratio: 1.4 
+                    },
+                    { 
+                        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/687px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg", 
+                        title: "Mona Lisa", 
+                        artist: "Leonardo da Vinci", 
+                        ratio: 0.67 
+                    }
+                ],
+                // Concrete Texture
+                concrete: "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/terrain/backgrounddetailed64.jpg",
+                bump: "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/water/Water_1_M_Normal.jpg"
+            }
+        };
+
+        // --- Application Class ---
+        class App {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+                
+                // State
+                this.isDragging = false;
+                this.isMoving = false;
+                this.dragStart = { x: 0, y: 0 };
+                this.cameraAngle = { phi: Math.PI / 2, theta: Math.PI }; // Initial look angle
+                this.activeArt = null; // Currently focused art object
+                
+                // Objects
+                this.artworks = [];
+                this.floor = null;
+
+                this.init();
+            }
+
+            init() {
+                // 1. Setup Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(CONFIG.colors.bg);
+                this.scene.fog = new THREE.FogExp2(CONFIG.colors.fog, 0.05);
+
+                // 2. Camera
+                this.camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 100);
+                this.camera.position.set(0, 1.6, 6); // Start slightly back
+
+                // 3. Renderer
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.physicallyCorrectLights = true;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 1.2;
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.getElementById('canvas-container').appendChild(this.renderer.domElement);
+
+                // 4. Lights
+                const ambient = new THREE.HemisphereLight(0xffffff, 0x000000, 0.2); // Faint ambience
+                this.scene.add(ambient);
+
+                // 5. Build Environment
+                this.buildRoom();
+                this.loadArt();
+
+                // 6. Events
+                window.addEventListener('resize', () => this.onResize());
+                this.setupInputs();
+
+                // 7. Loop
+                this.animate();
+            }
+
+            buildRoom() {
+                const texLoader = new THREE.TextureLoader();
+                
+                // Floor
+                const floorGeo = new THREE.PlaneGeometry(30, 30, 64, 64); // More segments for vertex lighting if needed
+                const floorMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x1a1a1a,
+                    roughness: 0.1,
+                    metalness: 0.2,
+                });
+                
+                // Add texture for slight grit
+                texLoader.load(CONFIG.assets.concrete, (tex) => {
+                    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                    tex.repeat.set(8, 8);
+                    floorMat.map = tex;
+                    floorMat.needsUpdate = true;
+                    // Finish Loading
+                    this.onLoaded();
+                });
+
+                this.floor = new THREE.Mesh(floorGeo, floorMat);
+                this.floor.rotation.x = -Math.PI / 2;
+                this.floor.receiveShadow = true;
+                this.floor.name = "floor";
+                this.scene.add(this.floor);
+            }
+
+            loadArt() {
+                const texLoader = new THREE.TextureLoader();
+                // Simple circular layout
+                const radius = 8;
+                const count = CONFIG.assets.art.length;
+
+                CONFIG.assets.art.forEach((data, i) => {
+                    const angle = (i / count) * Math.PI * 2 + Math.PI; // Start at back
+                    const x = Math.sin(angle) * radius;
+                    const z = Math.cos(angle) * radius;
+
+                    // Load Texture
+                    texLoader.load(data.url, (tex) => {
+                        tex.encoding = THREE.sRGBEncoding;
+                        
+                        // Frame
+                        const width = 3;
+                        const height = width / data.ratio;
+                        const geo = new THREE.BoxGeometry(width, height, 0.1);
+                        const mat = new THREE.MeshStandardMaterial({ 
+                            color: 0xffffff,
+                            map: tex,
+                            roughness: 0.4 
+                        });
+
+                        const mesh = new THREE.Mesh(geo, mat);
+                        mesh.position.set(x, 2, z);
+                        mesh.lookAt(0, 2, 0); // Face center
+                        mesh.castShadow = true;
+                        
+                        // Store Data
+                        mesh.userData = { 
+                            isArt: true, 
+                            id: i,
+                            info: data,
+                            originalPos: mesh.position.clone(),
+                            normal: new THREE.Vector3(0, 0, 1).applyQuaternion(mesh.quaternion)
+                        };
+
+                        this.scene.add(mesh);
+                        this.artworks.push(mesh);
+
+                        // Spotlight
+                        const spot = new THREE.SpotLight(0xffddaa, 20);
+                        // Position light above and in front
+                        const lightPos = mesh.position.clone().add(mesh.userData.normal.clone().multiplyScalar(2)).add(new THREE.Vector3(0, 3, 0));
+                        spot.position.copy(lightPos);
+                        spot.target = mesh;
+                        spot.angle = 0.5;
+                        spot.penumbra = 0.4;
+                        spot.castShadow = true;
+                        spot.shadow.mapSize.width = 1024;
+                        spot.shadow.mapSize.height = 1024;
+                        
+                        this.scene.add(spot);
+                        this.scene.add(spot.target);
+
+                        // Link light to mesh for curator
+                        mesh.userData.light = spot;
+                        
+                        // Create Floating Label Marker
+                        this.createLabel(mesh);
+                    });
+                });
+            }
+
+            createLabel(mesh) {
+                const div = document.createElement('div');
+                div.className = 'label-marker';
+                div.textContent = mesh.userData.info.title;
+                document.getElementById('labels-container').appendChild(div);
+                mesh.userData.label = div;
+            }
+
+            onLoaded() {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 1000);
+                document.getElementById('hud').style.opacity = '1';
+                
+                // Initial Camera Look
+                this.updateCameraLook();
+            }
+
+            // --- Input Handling ---
+            setupInputs() {
+                const canvas = this.renderer.domElement;
+                
+                // Touch/Mouse Start
+                const onStart = (x, y) => {
+                    this.isDragging = true;
+                    this.dragStart.x = x;
+                    this.dragStart.y = y;
+                    this.dragStart.time = performance.now();
+                };
+
+                // Move
+                const onMove = (x, y) => {
+                    if (!this.isDragging) return;
+                    
+                    const dx = x - this.dragStart.x;
+                    const dy = y - this.dragStart.y;
+                    
+                    // Sensitivity
+                    const sens = 0.003;
+                    this.cameraAngle.theta -= dx * sens; // Left/Right
+                    this.cameraAngle.phi -= dy * sens; // Up/Down
+                    
+                    // Clamp Vertical (Don't break neck)
+                    this.cameraAngle.phi = Math.max(0.1, Math.min(Math.PI - 0.1, this.cameraAngle.phi));
+                    
+                    this.updateCameraLook();
+                    
+                    this.dragStart.x = x;
+                    this.dragStart.y = y;
+                };
+
+                // End (Click detection)
+                const onEnd = () => {
+                    this.isDragging = false;
+                    const time = performance.now() - this.dragStart.time;
+                    // If tap was short and didn't move much
+                    if (time < 200) {
+                        this.handleClick(this.dragStart.x, this.dragStart.y);
+                    }
+                };
+
+                // Listeners
+                canvas.addEventListener('pointerdown', e => onStart(e.clientX, e.clientY));
+                window.addEventListener('pointermove', e => onMove(e.clientX, e.clientY));
+                window.addEventListener('pointerup', onEnd);
+            }
+
+            updateCameraLook() {
+                // Spherical to Cartesian
+                const x = Math.sin(this.cameraAngle.phi) * Math.sin(this.cameraAngle.theta);
+                const y = Math.cos(this.cameraAngle.phi);
+                const z = Math.sin(this.cameraAngle.phi) * Math.cos(this.cameraAngle.theta);
+                
+                const lookTarget = this.camera.position.clone().add(new THREE.Vector3(x, y, z));
+                this.camera.lookAt(lookTarget);
+            }
+
+            handleClick(x, y) {
+                if (this.isMoving) return;
+
+                // Normalized Coords
+                this.mouse.x = (x / window.innerWidth) * 2 - 1;
+                this.mouse.y = -(y / window.innerHeight) * 2 + 1;
+
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                
+                // Check Arts first (priority)
+                const artIntersects = this.raycaster.intersectObjects(this.artworks);
+                if (artIntersects.length > 0) {
+                    this.focusArt(artIntersects[0].object);
+                    return;
+                }
+
+                // Check Floor
+                const floorIntersects = this.raycaster.intersectObject(this.floor);
+                if (floorIntersects.length > 0) {
+                    this.walkTo(floorIntersects[0].point);
+                }
+            }
+
+            // --- Navigation Logic ---
+
+            walkTo(point) {
+                // If we were focused on art, close panel
+                this.closePanel();
+                
+                this.isMoving = true;
+                const start = this.camera.position.clone();
+                const end = new THREE.Vector3(point.x, 1.6, point.z); // Maintain height
+
+                new TWEEN.Tween(start)
+                    .to(end, 1500)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .onUpdate(() => {
+                        this.camera.position.copy(start);
+                        // Head bob
+                        this.camera.position.y = 1.6 + Math.sin(start.x * 2 + start.z * 2) * 0.05;
+                    })
+                    .onComplete(() => {
+                        this.isMoving = false;
+                        this.camera.position.y = 1.6;
+                        document.getElementById('status-text').innerText = "TAP FLOOR TO WALK";
+                        document.getElementById('btn-back').disabled = true;
+                        document.getElementById('btn-back').style.opacity = '0.5';
+                    })
+                    .start();
+            }
+
+            focusArt(mesh) {
+                this.isMoving = true;
+                this.activeArt = mesh;
+                
+                document.getElementById('status-text').innerText = "VIEWING ARTWORK";
+                document.getElementById('btn-back').disabled = false;
+                document.getElementById('btn-back').style.opacity = '1';
+
+                // Calculate perfect position: In front of art, along its normal
+                const distance = 3.5; // Sweet spot distance
+                const targetPos = mesh.position.clone().add(mesh.userData.normal.clone().multiplyScalar(distance));
+                targetPos.y = 1.6; // Eye level
+
+                // 1. Move Camera Position
+                new TWEEN.Tween(this.camera.position)
+                    .to(targetPos, 1500)
+                    .easing(TWEEN.Easing.Cubic.Out)
+                    .onComplete(() => {
+                        this.isMoving = false;
+                        this.openPanel(mesh.userData);
+                    })
+                    .start();
+
+                // 2. Rotate Camera to face Art (Calculate angles)
+                const dummyCam = this.camera.clone();
+                dummyCam.position.copy(targetPos);
+                dummyCam.lookAt(mesh.position);
+                
+                // Extract Spherical coords from LookAt quaternion
+                const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(dummyCam.quaternion);
+                const spherical = new THREE.Spherical().setFromVector3(direction);
+                
+                // Tween angles
+                new TWEEN.Tween(this.cameraAngle)
+                    .to({ phi: spherical.phi, theta: spherical.theta }, 1500)
+                    .easing(TWEEN.Easing.Cubic.Out)
+                    .onUpdate(() => this.updateCameraLook())
+                    .start();
+            }
+
+            stepBack() {
+                if (this.isMoving) return;
+                this.closePanel();
+                
+                this.isMoving = true;
+                
+                // Move backwards along view vector
+                const dir = new THREE.Vector3();
+                this.camera.getWorldDirection(dir);
+                dir.y = 0; // Keep horizontal
+                dir.normalize();
+                
+                const targetPos = this.camera.position.clone().add(dir.multiplyScalar(-3)); // Back 3 meters
+
+                new TWEEN.Tween(this.camera.position)
+                    .to(targetPos, 1000)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .onComplete(() => {
+                        this.isMoving = false;
+                        document.getElementById('status-text').innerText = "TAP FLOOR TO WALK";
+                        document.getElementById('btn-back').disabled = true;
+                        document.getElementById('btn-back').style.opacity = '0.5';
+                    })
+                    .start();
+            }
+
+            resetView() {
+                this.closePanel();
+                this.walkTo(new THREE.Vector3(0, 0, 0));
+            }
+
+            // --- UI Interaction ---
+            openPanel(data) {
+                const p = document.getElementById('art-panel');
+                p.classList.remove('translate-y-full');
+                
+                // Populate
+                document.getElementById('art-title').innerText = data.info.title;
+                document.getElementById('art-artist').innerText = data.info.artist;
+                document.getElementById('art-desc').innerText = "A masterpiece of composition and color. This digital reproduction utilizes physically based rendering to simulate the interaction of light with the canvas surface.";
+                
+                // Reset Tab
+                this.switchTab('info');
+                
+                // Update Slider Values
+                if (data.light) {
+                    document.getElementById('light-intensity').value = data.light.intensity / 10;
+                    document.getElementById('light-angle').value = data.light.angle;
+                }
+            }
+
+            closePanel() {
+                document.getElementById('art-panel').classList.add('translate-y-full');
+                this.activeArt = null;
+            }
+
+            switchTab(tab) {
+                const infoBtn = document.getElementById('tab-info');
+                const lightBtn = document.getElementById('tab-light');
+                const infoContent = document.getElementById('content-info');
+                const lightContent = document.getElementById('content-light');
+                
+                if (tab === 'info') {
+                    infoBtn.className = "pb-2 text-sm text-white font-medium border-b-2 border-white";
+                    lightBtn.className = "pb-2 text-sm text-gray-500 hover:text-white transition";
+                    infoContent.classList.remove('hidden');
+                    lightContent.classList.add('hidden');
+                } else {
+                    lightBtn.className = "pb-2 text-sm text-white font-medium border-b-2 border-white";
+                    infoBtn.className = "pb-2 text-sm text-gray-500 hover:text-white transition";
+                    lightContent.classList.remove('hidden');
+                    infoContent.classList.add('hidden');
+                }
+            }
+
+            updateLight(param, value) {
+                if (!this.activeArt || !this.activeArt.light) return;
+                
+                if (param === 'intensity') {
+                    this.activeArt.light.intensity = value * 10;
+                } else if (param === 'angle') {
+                    this.activeArt.light.angle = parseFloat(value);
+                }
+            }
+
+            setLightColor(hex) {
+                if (!this.activeArt || !this.activeArt.light) return;
+                this.activeArt.light.color.setHex(hex);
+            }
+
+            // --- Loop ---
+            onResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            updateLabels() {
+                this.artworks.forEach(mesh => {
+                    const label = mesh.userData.label;
+                    if (!label) return;
+
+                    // Project position
+                    const pos = mesh.position.clone();
+                    pos.y += 2.5; // Above art
+                    pos.project(this.camera);
+
+                    const x = (pos.x * .5 + .5) * window.innerWidth;
+                    const y = (pos.y * -.5 + .5) * window.innerHeight;
+
+                    // Hide if behind camera or too far
+                    const dist = this.camera.position.distanceTo(mesh.position);
+                    
+                    if (pos.z > 1 || dist > 15 || dist < 3) { // Hide if too close (viewing) or too far
+                        label.style.opacity = 0;
+                    } else {
+                        label.style.opacity = 1;
+                        label.style.left = `${x}px`;
+                        label.style.top = `${y}px`;
+                    }
+                });
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                TWEEN.update();
+                this.updateLabels();
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Initialize
+        window.app = new App();
+
+    </script>
+</body>
+</html>
