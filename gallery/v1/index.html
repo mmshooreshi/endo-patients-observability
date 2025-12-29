@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Luminarium: Ultimate</title>
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root { --gold: #d4af37; --glass: rgba(20, 20, 20, 0.65); --border: rgba(255, 255, 255, 0.15); }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; touch-action: none; }
+        
+        /* --- CANVAS & LAYERS --- */
+        #gl-canvas { display: block; width: 100vw; height: 100vh; outline: none; }
+        #ui-layer, #marker-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+
+        /* --- INTERACTIVE HELPERS --- */
+        .joystick-guide {
+            position: absolute; width: 80px; height: 80px; border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none; opacity: 0; transition: opacity 0.2s;
+        }
+        .joystick-thumb {
+            position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; background: var(--gold);
+            border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 10px var(--gold);
+        }
+
+        /* --- STUDIO UI (Bottom Slide-up) --- */
+        #studio-panel {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            transform: translateY(110%); transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            pointer-events: auto; padding-bottom: env(safe-area-inset-bottom);
+            display: flex; flex-direction: column;
+        }
+        #studio-panel.visible { transform: translateY(0); }
+
+        .studio-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .studio-title { color: var(--gold); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+        
+        /* Light Chips */
+        .light-strip { display: flex; gap: 12px; padding: 15px; overflow-x: auto; scrollbar-width: none; }
+        .light-strip::-webkit-scrollbar { display: none; }
+        .light-chip {
+            min-width: 40px; height: 40px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            border-radius: 10px; color: #888; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 600; transition: 0.2s;
+        }
+        .light-chip.active { background: rgba(212, 175, 55, 0.15); border-color: var(--gold); color: var(--gold); transform: scale(1.05); }
+
+        /* Controls */
+        .controls-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px 20px 20px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        .label-row { display: flex; justify-content: space-between; font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        
+        input[type=range] { width: 100%; -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-track { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { 
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--gold); 
+            margin-top: -6px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); 
+        }
+
+        /* --- ART OVERLAYS --- */
+        .art-marker {
+            position: absolute; width: 40px; height: 40px; background: rgba(0,0,0,0.6); border: 1px solid var(--border);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 20px; cursor: pointer; pointer-events: auto;
+            transform: translate(-50%, -50%) scale(0); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            backdrop-filter: blur(5px);
+        }
+        .art-marker.visible { transform: translate(-50%, -50%) scale(1); }
+
+        .art-banner {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(20px);
+            width: 90%; max-width: 400px;
+            background: rgba(30, 30, 30, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+            padding: 20px; pointer-events: auto;
+            display: flex; flex-direction: column; gap: 10px;
+            opacity: 0; visibility: hidden; transition: 0.4s;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .art-banner.active { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+        .art-title { color: #fff; font-size: 18px; font-weight: 700; margin: 0; }
+        .art-desc { color: #aaa; font-size: 13px; line-height: 1.4; margin: 0; }
+        .art-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btn {
+            flex: 1; padding: 10px; border-radius: 12px; border: none; font-weight: 600; font-size: 12px; cursor: pointer;
+        }
+        .btn-primary { background: var(--gold); color: #000; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; }
+
+        /* --- TOP HUD --- */
+        .hud { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; pointer-events: auto; }
+        .hud-btn {
+            width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 1px solid var(--border);
+            color: #fff; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+            backdrop-filter: blur(10px); transition: 0.2s;
+        }
+        .hud-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
+
+    </style>
+</head>
+<body>
+
+    <!-- 3D Viewport -->
+    <canvas id="gl-canvas"></canvas>
+
+    <!-- Markers (Hotspots) -->
+    <div id="marker-layer"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+        
+        <!-- Touch Feedback -->
+        <div id="joy-left" class="joystick-guide"><div class="joystick-thumb"></div></div>
+        <div id="joy-right" class="joystick-guide"><div class="joystick-thumb"></div></div>
+
+        <!-- HUD -->
+        <div class="hud">
+            <div class="hud-btn" id="btn-mode" onclick="App.toggleMode()">🛠️</div>
+        </div>
+
+        <!-- Art Info Banner -->
+        <div class="art-banner" id="art-card">
+            <h2 class="art-title" id="card-title">Artwork Title</h2>
+            <p class="art-desc" id="card-desc">Description of the artwork style and procedure.</p>
+            <div class="art-actions">
+                <button class="action-btn btn-secondary" onclick="App.closeCard()">Close</button>
+                <button class="action-btn btn-primary" onclick="App.gotoNextArt()">Next Art ➜</button>
+            </div>
+        </div>
+
+        <!-- Studio Panel -->
+        <div id="studio-panel">
+            <div class="studio-header">
+                <span class="studio-title">Light Projector Control</span>
+                <span style="font-size: 10px; color:#666">2 FINGERS TO MOVE • DRAG CONE TO AIM</span>
+            </div>
+
+            <div class="light-strip" id="light-strip"></div>
+
+            <div class="controls-row">
+                <div class="control-group">
+                    <div class="label-row"><span>Intensity</span><span id="lbl-int">1.0</span></div>
+                    <input type="range" min="0" max="5" step="0.1" id="sl-int">
+                </div>
+                <div class="control-group">
+                    <div class="label-row"><span>Warmth</span><span id="lbl-col">Warm</span></div>
+                    <input type="range" min="0" max="100" step="1" id="sl-col">
+                </div>
+                <div class="control-group">
+                    <div class="label-row"><span>Spread</span><span id="lbl-ang">30°</span></div>
+                    <input type="range" min="0.1" max="1.0" step="0.05" id="sl-ang">
+                </div>
+                <div class="control-group">
+                    <div class="label-row"><span>Fade</span><span id="lbl-pen">0.5</span></div>
+                    <input type="range" min="0" max="1" step="0.05" id="sl-pen">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <script>
+        // --- ART ASSET GENERATOR ---
+        const ArtGen = {
+            createTexture: (seed, style) => {
+                const cvs = document.createElement('canvas');
+                cvs.width = 512; cvs.height = 512;
+                const ctx = cvs.getContext('2d');
+                
+                // Background
+                const hue = (seed * 137) % 360;
+                ctx.fillStyle = `hsl(${hue}, 10%, 90%)`;
+                ctx.fillRect(0,0,512,512);
+
+                if(style === 'geo') {
+                    ctx.globalCompositeOperation = 'multiply';
+                    for(let i=0; i<8; i++) {
+                        ctx.fillStyle = `hsl(${(hue+i*40)%360}, 60%, 60%)`;
+                        ctx.fillRect(Math.random()*400, Math.random()*400, Math.random()*200+50, Math.random()*200+50);
+                    }
+                } else if (style === 'void') {
+                    const grad = ctx.createRadialGradient(256,256,50, 256,256,300);
+                    grad.addColorStop(0, '#000');
+                    grad.addColorStop(1, `hsl(${hue}, 50%, 50%)`);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0,0,512,512);
+                } else {
+                    // Splatter
+                    for(let i=0; i<500; i++) {
+                        ctx.fillStyle = `hsla(${(hue+Math.random()*60)%360}, 70%, 50%, 0.8)`;
+                        ctx.beginPath();
+                        ctx.arc(Math.random()*512, Math.random()*512, Math.random()*20, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                }
+                return new THREE.CanvasTexture(cvs);
+            }
+        };
+
+        // --- APP LOGIC ---
+        const App = {
+            scene: null, camera: null, renderer: null,
+            mode: 'walk', // walk | studio
+            lights: [],
+            arts: [],
+            selLightIdx: 0,
+            raycaster: new THREE.Raycaster(),
+            
+            // Interaction State
+            controls: {
+                move: { active: false, id: null, startX:0, startY:0, valX:0, valY:0 },
+                look: { active: false, id: null, lastX:0, lastY:0 },
+                studio: { active: false, type: null, id: null, id2: null, startDist:0 } // type: orbit | dragLight | dragTarget
+            },
+            
+            player: { pos: new THREE.Vector3(0, 1.7, 10), rot: new THREE.Euler(0,0,0, 'YXZ') },
+            studioCam: { pos: new THREE.Vector3(), target: new THREE.Vector3() }, // For smooth tweening
+            
+            init() {
+                // 1. Scene Setup
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x111111);
+                this.scene.fog = new THREE.FogExp2(0x111111, 0.02);
+
+                this.camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
+                this.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl-canvas'), antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 1.0;
+
+                // 2. Build World
+                this.buildRoom();
+                this.setupLights();
+                
+                // 3. Inputs
+                this.setupInputs();
+                this.setupUI();
+
+                // 4. Loop
+                requestAnimationFrame(this.animate.bind(this));
+            },
+
+            buildRoom() {
+                // Textures
+                const noise = (c1, c2) => {
+                    const c = document.createElement('canvas'); c.width=256; c.height=256;
+                    const x = c.getContext('2d'); x.fillStyle=c1; x.fillRect(0,0,256,256);
+                    for(let i=0; i<2000; i++) { x.fillStyle=c2; x.fillRect(Math.random()*256, Math.random()*256, 2, 2); }
+                    const t = new THREE.CanvasTexture(c); t.wrapS=t.wrapT=1000; t.repeat.set(8,8); return t;
+                };
+                
+                const floorMat = new THREE.MeshStandardMaterial({ map: noise('#2a1a10', '#352518'), roughness: 0.2, metalness: 0.1 });
+                const wallMat = new THREE.MeshStandardMaterial({ map: noise('#e5e5e5', '#dcdcdc'), roughness: 0.9 });
+
+                // Geometry
+                const mesh = (g, m, x, y, z, rx=0) => {
+                    const o = new THREE.Mesh(g, m); o.position.set(x,y,z); o.rotation.x=rx;
+                    o.castShadow=true; o.receiveShadow=true; this.scene.add(o); return o;
+                };
+
+                mesh(new THREE.PlaneGeometry(60,60), floorMat, 0, 0, 0, -Math.PI/2); // Floor
+                mesh(new THREE.BoxGeometry(40, 8, 1), wallMat, 0, 4, -15); // Back Wall
+                mesh(new THREE.BoxGeometry(1, 8, 30), wallMat, -20, 4, 0); // Left
+                mesh(new THREE.BoxGeometry(1, 8, 30), wallMat, 20, 4, 0); // Right
+                
+                // Art Creation
+                const addArt = (x, y, z, ry, style, title, desc) => {
+                    const frame = mesh(new THREE.BoxGeometry(4, 3, 0.2), new THREE.MeshStandardMaterial({color:0x111}), x, y, z);
+                    frame.rotation.y = ry;
+                    
+                    const canvas = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 2.6), new THREE.MeshBasicMaterial({ map: ArtGen.createTexture(x*z, style) }));
+                    canvas.position.z = 0.11;
+                    frame.add(canvas);
+
+                    // Add Hotspot data
+                    const worldPos = new THREE.Vector3(x, y, z);
+                    // Offset slightly towards room center
+                    worldPos.x += Math.sin(ry) * 0.5;
+                    worldPos.z += Math.cos(ry) * 0.5;
+                    
+                    this.arts.push({ id: this.arts.length, pos: worldPos, title, desc, active: false, el: null });
+                };
+
+                addArt(0, 3, -14.4, 0, 'geo', 'Geometric Harmony', 'An exploration of shapes and colors in balance.');
+                addArt(-6, 3, -14.4, 0, 'void', 'The Void', 'Staring into the depths of color space.');
+                addArt(6, 3, -14.4, 0, 'splatter', 'Chaos Theory', 'Randomness encapsulated in a frame.');
+                addArt(-19.4, 3, 0, Math.PI/2, 'geo', 'Lateral Thinking', 'Perspective shifts from the side wall.');
+                addArt(19.4, 3, 0, -Math.PI/2, 'void', 'Eastern Dawn', 'Morning light captured in abstraction.');
+
+                // Markers DOM
+                const layer = document.getElementById('marker-layer');
+                this.arts.forEach(a => {
+                    const el = document.createElement('div');
+                    el.className = 'art-marker';
+                    el.innerHTML = 'i';
+                    el.onclick = () => this.openCard(a);
+                    layer.appendChild(el);
+                    a.el = el;
+                });
+            },
+
+            setupLights() {
+                // Ambient
+                this.scene.add(new THREE.HemisphereLight(0xffffff, 0x222222, 0.4));
+
+                const createProjector = (x, z, idx) => {
+                    // 1. Group for physical object
+                    const rig = new THREE.Group();
+                    rig.position.set(x, 7.5, z);
+                    this.scene.add(rig);
+
+                    // 2. Physical Mesh (Body)
+                    const bodyGeo = new THREE.CylinderGeometry(0.2, 0.25, 0.6);
+                    bodyGeo.rotateX(Math.PI/2);
+                    const body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({color:0x222, metalness:0.8, roughness:0.2}));
+                    rig.add(body);
+
+                    // 3. Light Source
+                    const spot = new THREE.SpotLight(0xffeeb1, 2);
+                    spot.position.set(x, 7.5, z); // Same as rig
+                    spot.angle = 0.5;
+                    spot.penumbra = 0.5;
+                    spot.decay = 1.5;
+                    spot.distance = 40;
+                    spot.castShadow = true;
+                    this.scene.add(spot);
+
+                    const target = new THREE.Object3D();
+                    target.position.set(x, 2, z-2);
+                    this.scene.add(target);
+                    spot.target = target;
+
+                    // 4. Helper (Raycastable)
+                    const helper = new THREE.SpotLightHelper(spot, 0xd4af37);
+                    helper.visible = false;
+                    this.scene.add(helper);
+                    
+                    // Add invisible cone mesh for easier dragging
+                    const dragCone = new THREE.Mesh(new THREE.ConeGeometry(2, 10, 8, 1, true), new THREE.MeshBasicMaterial({visible:false, side:THREE.DoubleSide}));
+                    dragCone.position.copy(spot.position);
+                    this.scene.add(dragCone);
+
+                    this.lights.push({ id: idx, light: spot, target, rig, body, helper, dragCone });
+                };
+
+                [[0,-10], [-8,-10], [8,-10], [-16,0], [16,0]].forEach((p, i) => createProjector(p[0], p[1], i));
+            },
+
+            setupInputs() {
+                const cvs = this.renderer.domElement;
+                
+                // --- TOUCH START ---
+                cvs.addEventListener('touchstart', e => {
+                    e.preventDefault();
+                    const touches = e.changedTouches;
+                    
+                    // WALK MODE
+                    if (this.mode === 'walk') {
+                        for(let t of touches) {
+                            if (t.clientX < window.innerWidth/2) {
+                                // Left -> Move (INVERTED)
+                                this.controls.move.active = true;
+                                this.controls.move.id = t.identifier;
+                                this.controls.move.startX = t.clientX;
+                                this.controls.move.startY = t.clientY;
+                                this.showJoy('joy-left', t.clientX, t.clientY);
+                            } else {
+                                // Right -> Look
+                                this.controls.look.active = true;
+                                this.controls.look.id = t.identifier;
+                                this.controls.look.lastX = t.clientX;
+                                this.controls.look.lastY = t.clientY;
+                                this.showJoy('joy-right', t.clientX, t.clientY);
+                            }
+                        }
+                    } 
+                    
+                    // STUDIO MODE
+                    else {
+                        // Raycast to check if hitting helper
+                        const t = touches[0];
+                        const mouse = new THREE.Vector2((t.clientX/window.innerWidth)*2-1, -(t.clientY/window.innerHeight)*2+1);
+                        this.raycaster.setFromCamera(mouse, this.camera);
+                        
+                        const curLight = this.lights[this.selLightIdx];
+                        const hits = this.raycaster.intersectObject(curLight.dragCone);
+
+                        if (e.touches.length === 2) {
+                            // Two fingers -> Move Light
+                            this.controls.studio.active = true;
+                            this.controls.studio.type = 'dragLight';
+                            this.controls.studio.id = e.touches[0].identifier;
+                            this.controls.studio.id2 = e.touches[1].identifier;
+                            this.controls.studio.startDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); // Not used yet but good for pinch
+                        } else if (hits.length > 0) {
+                            // Hit Cone -> Drag Target
+                            this.controls.studio.active = true;
+                            this.controls.studio.type = 'dragTarget';
+                            this.controls.studio.id = t.identifier;
+                        } else {
+                            // Hit Nothing -> Orbit
+                            this.controls.studio.active = true;
+                            this.controls.studio.type = 'orbit';
+                            this.controls.studio.id = t.identifier;
+                            this.controls.look.lastX = t.clientX;
+                            this.controls.look.lastY = t.clientY;
+                        }
+                    }
+                }, {passive: false});
+
+                // --- TOUCH MOVE ---
+                cvs.addEventListener('touchmove', e => {
+                    e.preventDefault();
+                    
+                    // WALK
+                    if(this.mode === 'walk') {
+                        for(let t of e.changedTouches) {
+                            if(t.identifier === this.controls.move.id) {
+                                // INVERTED: Up(-Y) -> Back(+Speed). Left(-X) -> Right(-Speed)
+                                const dx = t.clientX - this.controls.move.startX;
+                                const dy = t.clientY - this.controls.move.startY;
+                                this.controls.move.valX = Math.max(-1, Math.min(1, dx/50));
+                                this.controls.move.valY = Math.max(-1, Math.min(1, dy/50));
+                                // Move Joy Visual
+                                const j = document.getElementById('joy-left');
+                                j.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                            }
+                            if(t.identifier === this.controls.look.id) {
+                                const dx = t.clientX - this.controls.look.lastX;
+                                const dy = t.clientY - this.controls.look.lastY;
+                                this.player.rot.y -= dx * 0.005;
+                                this.player.rot.x -= dy * 0.005;
+                                this.player.rot.x = Math.max(-1.5, Math.min(1.5, this.player.rot.x));
+                                this.controls.look.lastX = t.clientX;
+                                this.controls.look.lastY = t.clientY;
+                            }
+                        }
+                    }
+                    
+                    // STUDIO
+                    else if (this.controls.studio.active) {
+                        const l = this.lights[this.selLightIdx];
+                        
+                        if (this.controls.studio.type === 'orbit') {
+                            const t = e.changedTouches[0];
+                            const dx = t.clientX - this.controls.look.lastX;
+                            const dy = t.clientY - this.controls.look.lastY;
+                            // Rotate around current target (Light target)
+                            // Simple orbital math:
+                            // Just rotate camera for now. 
+                            // Better: Rotate camera position around target position.
+                            // We'll stick to simple rotation for "Looking around"
+                            this.camera.rotation.y -= dx * 0.005;
+                            this.camera.rotation.x -= dy * 0.005;
+                            this.controls.look.lastX = t.clientX;
+                            this.controls.look.lastY = t.clientY;
+                        }
+                        else if (this.controls.studio.type === 'dragTarget') {
+                             const t = e.changedTouches[0];
+                             // Raycast against floor plane
+                             const mouse = new THREE.Vector2((t.clientX/window.innerWidth)*2-1, -(t.clientY/window.innerHeight)*2+1);
+                             this.raycaster.setFromCamera(mouse, this.camera);
+                             const hits = this.raycaster.intersectObject(this.scene.children[0]); // Floor is 0
+                             if(hits.length>0) {
+                                 l.target.position.copy(hits[0].point);
+                                 this.updateLightObj(l);
+                             }
+                        }
+                        else if (this.controls.studio.type === 'dragLight' && e.touches.length === 2) {
+                            // Move Light X/Z
+                            // Use average delta
+                            const t1 = e.touches[0]; const t2 = e.touches[1];
+                            const cx = (t1.clientX + t2.clientX)/2;
+                            const cy = (t1.clientY + t2.clientY)/2;
+                            // Need previous center... simplification:
+                            // Just increment slowly based on movement from center screen?
+                            // Or stick to 1 finger drag for light if mode selected?
+                            // Let's rely on basic move for now.
+                            l.light.position.x += (e.touches[0].clientX - this.controls.look.lastX) * 0.05; // Quick hack
+                            l.rig.position.copy(l.light.position);
+                        }
+                    }
+                }, {passive: false});
+
+                // --- TOUCH END ---
+                cvs.addEventListener('touchend', e => {
+                    for(let t of e.changedTouches) {
+                        if(t.identifier === this.controls.move.id) {
+                            this.controls.move.active = false;
+                            this.controls.move.valX = 0; this.controls.move.valY = 0;
+                            document.getElementById('joy-left').style.opacity = 0;
+                        }
+                        if(t.identifier === this.controls.look.id) {
+                            this.controls.look.active = false;
+                            document.getElementById('joy-right').style.opacity = 0;
+                        }
+                        if(this.controls.studio.active) this.controls.studio.active = false;
+                    }
+                });
+            },
+
+            showJoy(id, x, y) {
+                const el = document.getElementById(id);
+                el.style.left = x + 'px'; el.style.top = y + 'px';
+                el.style.opacity = 1;
+                el.style.transform = 'translate(-50%, -50%)';
+            },
+
+            setupUI() {
+                // Light Chips
+                const strip = document.getElementById('light-strip');
+                this.lights.forEach((l, i) => {
+                    const c = document.createElement('div');
+                    c.className = `light-chip ${i===0?'active':''}`;
+                    c.innerText = i+1;
+                    c.onclick = () => this.selectLight(i);
+                    strip.appendChild(c);
+                });
+
+                // Sliders
+                const bind = (id, prop) => {
+                    document.getElementById(id).addEventListener('input', e => {
+                        const val = parseFloat(e.target.value);
+                        const l = this.lights[this.selLightIdx];
+                        if(prop === 'color') l.light.color.setHSL((50-(val/100*40))/360, 1, 0.6);
+                        else l.light[prop] = val;
+                        l.helper.update();
+                    });
+                };
+                bind('sl-int', 'intensity');
+                bind('sl-ang', 'angle');
+                bind('sl-pen', 'penumbra');
+                bind('sl-col', 'color');
+            },
+
+            selectLight(idx) {
+                this.lights[this.selLightIdx].helper.visible = false;
+                this.lights[this.selLightIdx].dragCone.visible = false;
+                
+                this.selLightIdx = idx;
+                const l = this.lights[idx];
+                l.helper.visible = true;
+                l.dragCone.visible = false; // Keep invisible raycast target
+
+                // Update UI
+                document.querySelectorAll('.light-chip').forEach((c,i) => c.classList.toggle('active', i===idx));
+                document.getElementById('sl-int').value = l.light.intensity;
+                document.getElementById('sl-ang').value = l.light.angle;
+                document.getElementById('sl-pen').value = l.light.penumbra;
+
+                // Cinematic Fly-to
+                this.studioCam.pos.copy(l.light.position).add(new THREE.Vector3(5, 5, 5));
+                this.studioCam.target.copy(l.target.position);
+                
+                new TWEEN.Tween(this.camera.position)
+                    .to(this.studioCam.pos, 1000)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
+                
+                // We also need to tween the lookAt... handled in animate
+            },
+
+            updateLightObj(l) {
+                // Point physical rig at target
+                l.body.lookAt(l.target.position);
+                l.helper.update();
+                // Move drag cone
+                l.dragCone.position.copy(l.light.position);
+                l.dragCone.rotation.copy(l.body.rotation);
+                l.dragCone.rotateX(-Math.PI/2); // Re-orient cone geometry
+            },
+
+            toggleMode() {
+                this.mode = this.mode === 'walk' ? 'studio' : 'walk';
+                const btn = document.getElementById('btn-mode');
+                const panel = document.getElementById('studio-panel');
+                
+                if (this.mode === 'studio') {
+                    btn.classList.add('active');
+                    panel.classList.add('visible');
+                    this.selectLight(this.selLightIdx); // Trigger fly-to
+                } else {
+                    btn.classList.remove('active');
+                    panel.classList.remove('visible');
+                    this.lights[this.selLightIdx].helper.visible = false;
+                    // Reset to player
+                    new TWEEN.Tween(this.camera.position).to(this.player.pos, 800).start();
+                }
+            },
+            
+            // --- ART INTERACTIONS ---
+            openCard(art) {
+                document.getElementById('card-title').innerText = art.title;
+                document.getElementById('card-desc').innerText = art.desc;
+                document.getElementById('art-card').classList.add('active');
+                this.currentArt = art;
+            },
+            closeCard() {
+                document.getElementById('art-card').classList.remove('active');
+            },
+            gotoNextArt() {
+                this.closeCard();
+                const nextId = (this.currentArt.id + 1) % this.arts.length;
+                const nextArt = this.arts[nextId];
+                
+                // Calculate position in front of art
+                const targetPos = nextArt.pos.clone();
+                // We don't have normal info stored easily, but we know room layout...
+                // Quick hack: just move player 4 units towards center (0,0,0) from art pos
+                const dirToCenter = new THREE.Vector3(0,0,0).sub(targetPos).normalize();
+                const standPos = targetPos.clone().add(dirToCenter.multiplyScalar(4));
+                standPos.y = 1.7;
+
+                new TWEEN.Tween(this.player.pos)
+                    .to(standPos, 2000)
+                    .easing(TWEEN.Easing.Quadratic.InOut)
+                    .onUpdate(() => {
+                        this.camera.lookAt(nextArt.pos); // Lock view on art while moving
+                        // Update player rot to match camera
+                        this.player.rot.copy(this.camera.rotation);
+                        this.player.rot.x = 0; // Keep feet flat
+                    })
+                    .start();
+            },
+
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+                TWEEN.update();
+
+                // 1. Walk Physics
+                if (this.mode === 'walk' && this.controls.move.active) {
+                    const yaw = this.player.rot.y;
+                    const speed = 0.12;
+                    // Inverted Logic: Up(-Y)->Back(+Z), Left(-X)->Right(+X)
+                    const fwd = -this.controls.move.valY; // -1 to 1
+                    const rgt = -this.controls.move.valX; // -1 to 1
+                    
+                    // Standard move vector
+                    const dx = Math.sin(yaw) * fwd + Math.cos(yaw) * rgt;
+                    const dz = Math.cos(yaw) * fwd - Math.sin(yaw) * rgt;
+                    
+                    // Inverted result
+                    this.player.pos.x -= dx * speed; 
+                    this.player.pos.z -= dz * speed; 
+                    
+                    // Floor Bounds
+                    this.player.pos.x = Math.max(-25, Math.min(25, this.player.pos.x));
+                    this.player.pos.z = Math.max(-25, Math.min(25, this.player.pos.z));
+                    
+                    this.camera.position.copy(this.player.pos);
+                    this.camera.rotation.copy(this.player.rot);
+                } 
+                else if (this.mode === 'studio') {
+                    // Update Physical Bodies
+                    this.lights.forEach(l => this.updateLightObj(l));
+                    if (!this.controls.studio.active && !TWEEN.getAll().length) {
+                         this.camera.lookAt(this.studioCam.target);
+                    }
+                }
+
+                // 2. Art Markers Logic
+                this.arts.forEach(a => {
+                    // Project position
+                    const v = a.pos.clone().project(this.camera);
+                    
+                    // Check if in front of camera
+                    if (v.z < 1) {
+                        const x = (v.x * .5 + .5) * window.innerWidth;
+                        const y = (-(v.y * .5) + .5) * window.innerHeight;
+                        
+                        a.el.style.left = x + 'px';
+                        a.el.style.top = y + 'px';
+                        
+                        // Visibility check (Distance + Center of screen)
+                        const dist = this.camera.position.distanceTo(a.pos);
+                        const isCenter = Math.abs(v.x) < 0.2 && Math.abs(v.y) < 0.2;
+                        
+                        if (dist < 8 && isCenter && this.mode === 'walk') {
+                            a.el.classList.add('visible');
+                        } else {
+                            a.el.classList.remove('visible');
+                        }
+                    } else {
+                        a.el.classList.remove('visible');
+                    }
+                });
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        };
+
+        window.onload = () => App.init();
+        window.onresize = () => {
+            App.camera.aspect = window.innerWidth/window.innerHeight;
+            App.camera.updateProjectionMatrix();
+            App.renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>
