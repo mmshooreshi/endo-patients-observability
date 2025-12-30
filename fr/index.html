@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گزارش مقادیر مرجع برای حجم نمونه</title>
+    
+    <!-- Import Vazirmatn Font -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        :root {
+            --primary-color: #0056b3;
+            --secondary-color: #f0f4f8;
+            --accent-color: #d32f2f;
+            --text-color: #222;
+            --border-color: #bbb;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #525659; /* Acrobat Reader gray background feel */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* A4 Paper Simulation */
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 30px auto;
+            background: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden; /* Ensures content stays within A4 */
+        }
+
+        /* Header Styles */
+        header {
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 20px; /* Adjusted for A4 scale */
+            margin: 0;
+            font-weight: 800;
+        }
+
+        .meta-info {
+            font-size: 13px;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        /* Content Styles */
+        p {
+            font-size: 14px;
+            text-align: justify;
+            line-height: 1.8;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        h2 {
+            font-size: 16px;
+            color: var(--primary-color);
+            border-right: 5px solid var(--primary-color);
+            padding-right: 10px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            background-color: #f4f4f4;
+            padding: 6px 10px 6px 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 13px;
+            page-break-inside: avoid;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        /* Highlights */
+        .highlight-sd {
+            color: var(--accent-color);
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        .method-box {
+            background-color: #fff8e1;
+            border: 1px solid #ffe082;
+            color: #5d4037;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 5px;
+            page-break-inside: avoid;
+        }
+
+        .iso-box {
+            background-color: #e9ecef;
+            border-right: 4px solid #495057;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 13px;
+        }
+
+        /* English Helper */
+        .en {
+            font-family: 'Times New Roman', serif;
+            direction: ltr;
+            display: inline-block;
+        }
+
+        /* Button - Hidden in Print */
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            background-color: #003d80;
+        }
+
+        /* PRINT SETTINGS (The Magic Part) */
+        @page {
+            size: A4;
+            margin: 0; /* Remove browser default margins to let our CSS handle padding */
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                display: block;
+            }
+            .page {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                height: auto;
+                page-break-after: always;
+            }
+            .controls {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button class="btn" onclick="document.title='Gozarest_Data_Reference'; window.print()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            ذخیره به عنوان PDF
+        </button>
+    </div>
+
+    <div class="page">
+        <header>
+            <div>
+                <h1>گزارش مقادیر مرجع برای محاسبه حجم نمونه</h1>
+                <div class="meta-info">دانشجو: امین سرافراز &nbsp;|&nbsp; استاد راهنما: دکتر شمشیری</div>
+            </div>
+            <div class="meta-info" style="text-align: left;">
+                تاریخ: ۱۰ دی ۱۴۰۳<br>
+                وضعیت: نهایی
+            </div>
+        </header>
+
+        <section>
+            <p><strong>استاد گرامی، سلام و وقت بخیر.</strong></p>
+            <p>
+                پیرو دستور شما مبنی بر استخراج مقادیر دقیق <strong>میانگین و انحراف معیار (Mean ± SD)</strong> برای محاسبه حجم نمونه، متون علمی را به دقت بررسی کردم. از آنجا که مطالعه واحدی وجود ندارد که همزمان هر ۴ متغیر (خمشی، فشاری، سختی، انحلال) را روی برندهای ایرانی مدنظر (آکروسان/آکروپارس) و برند خارجی (ایمپکت) سنجیده باشد، داده‌های لازم از ترکیب ۳ مطالعه معتبر که متدولوژی آن‌ها دقیقاً مشابه طرح ماست استخراج شده است.
+            </p>
+        </section>
+
+        <!-- Section: ISO Context -->
+        <section>
+            <h2>وضعیت استاندارد ISO در این مطالعه</h2>
+            <div class="iso-box">
+                <strong>نکته بسیار مهم در خصوص متدولوژی:</strong><br>
+                ما از استاندارد مرجع <span class="en">ISO 20795-1:2013</span> پیروی می‌کنیم. باید توجه داشت:
+                <ul>
+                    <li><strong>موارد منطبق با ISO:</strong> تست‌های <u>استحکام خمشی</u> و <u>انحلال‌پذیری</u> دقیقاً طبق پروتکل این استاندارد (ابعاد نمونه، سیکل خشک‌سازی و روش تست) انجام می‌شوند.</li>
+                    <li><strong>موارد خارج از ISO:</strong> این استاندارد پروتکلی برای <u>استحکام فشاری</u> و <u>سختی سطح</u> ندارد. برای این موارد، طبق کتب مرجع (مثل <em>Phillips</em>) از نمونه‌های استوانه‌ای و دیسک پولیش‌شده استفاده می‌کنیم که در مقالات زیر نیز همین روش به کار رفته است.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Section 1: Compressive Strength -->
+        <section>
+            <h2>۱. استحکام فشاری (Compressive Strength)</h2>
+            <p>
+                این حیاتی‌ترین داده برای برندهای ایرانی است. مقاله زیر مستقیماً دو برند ایرانی آکروسان و آکروپارس را با یک نمونه استاندارد خارجی (ملیودنت/ایمپکت) مقایسه کرده است.
+            </p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">برند تجاری</th>
+                        <th>نوع محصول</th>
+                        <th>میانگین (MPa)</th>
+                        <th>انحراف معیار (SD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="en">Acrosun</span></td>
+                        <td>ایرانی</td>
+                        <td>85.6</td>
+                        <td class="highlight-sd">± 6.9</td>
+                    </tr>
+                    <tr>
+                        <td><span class="en">Acropars</span></td>
+                        <td>ایرانی</td>
+                        <td>80.6</td>
+                        <td class="highlight-sd">± 6.9</td>
+                    </tr>
+                    <tr>
+                        <td>کنترل خارجی</td>
+                        <td>استاندارد</td>
+                        <td>71.9</td>
+                        <td class="highlight-sd">± 5.3</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="method-box">
+                <strong>همخوانی روش:</strong> نمونه‌های استوانه‌ای (قطر ۶ در ارتفاع ۱۲ میلی‌متر)، دستگاه یونیورسال، سرعت <span class="en">1 mm/min</span>.<br>
+                <span class="en">Ref: Ghasemi E, et al. "Compressive Strength of Three Types of Heat-Cure Acrylic Resins..." J Res Dentomaxillofac Sci. 2022.</span>
+            </div>
+        </section>
+
+        <!-- Section 2: Flexural Strength -->
+        <section>
+            <h2>۲. استحکام خمشی (Flexural Strength)</h2>
+            <p>
+                برای متغیر اصلی استاندارد ISO، داده‌های زیر از مطالعه مقایسه‌ای آکروپارس و نمونه خارجی استخراج شد. (با توجه به شباهت آکروسان و آکروپارس، می‌توان از SD آکروپارس برای آکروسان هم استفاده کرد).
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">برند تجاری</th>
+                        <th>نوع محصول</th>
+                        <th>میانگین (MPa)</th>
+                        <th>انحراف معیار (SD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="en">Acropars</span></td>
+                        <td>ایرانی</td>
+                        <td>73.58</td>
+                        <td class="highlight-sd">± 0.60</td>
+                    </tr>
+                    <tr>
+                        <td>کنترل خارجی</td>
+                        <td>استاندارد</td>
+                        <td>81.55</td>
+                        <td class="highlight-sd">± 1.54</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="method-box">
+                <strong>همخوانی روش:</strong> منطبق بر ISO 20795-1 (خمش سه نقطه‌ای، فاصله تکیه‌گاه ۵۰ میلی‌متر، نگهداری در آب ۵۰ ساعت).<br>
+                <span class="en">Ref: Golbidi R, Jalali T. "An Evaluation of the Flexural Properties..." J Dent Tehran Univ Med Sci.</span>
+            </div>
+        </section>
+
+        <!-- Section 3: Hardness & Solubility -->
+        <section>
+            <h2>۳. سختی سطح و انحلال‌پذیری</h2>
+            <p>
+                داده عددی دقیق برای برندهای ایرانی در این دو متغیر موجود نبود. مقادیر <strong>برند خارجی (Impact)</strong> جهت تعیین واریانس (Sigma) در فرمول حجم نمونه ارائه می‌گردد.
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">متغیر</th>
+                        <th>برند</th>
+                        <th>واحد</th>
+                        <th>میانگین</th>
+                        <th>انحراف معیار (SD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>سختی سطح</td>
+                        <td><span class="en">Impact</span></td>
+                        <td><span class="en">VHN</span></td>
+                        <td>19.8</td>
+                        <td class="highlight-sd">± 1.2</td>
+                    </tr>
+                    <tr>
+                        <td>انحلال‌پذیری</td>
+                        <td><span class="en">Impact</span></td>
+                        <td><span class="en">µg/mm³</span></td>
+                        <td>0.50</td>
+                        <td class="highlight-sd">± 0.02</td>
+                    </tr>
+                    <tr>
+                        <td>جذب آب</td>
+                        <td><span class="en">Impact</span></td>
+                        <td><span class="en">µg/mm³</span></td>
+                        <td>19.11</td>
+                        <td class="highlight-sd">± 0.90</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="method-box">
+                <strong>همخوانی روش:</strong> سختی (ویکرز، بار ۳۰۰g، ۱۵s)؛ انحلال (سیکل خشک‌سازی و غوطه‌وری ۷ روزه طبق ISO).<br>
+                <span class="en">Ref: Chhabra et al. (2022) & Al-Ameri et al. (2025).</span>
+            </div>
+        </section>
+
+        <section style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 10px;">
+            <p>
+                <strong>نتیجه‌گیری برای محاسبه آماری:</strong><br>
+                پیشنهاد می‌شود محاسبات نهایی حجم نمونه بر اساس <u>ماکزیمم انحراف معیار (SD)</u> گزارش شده در جداول فوق انجام شود تا توان آزمون (Power) تضمین گردد.
+            </p>
+        </section>
+
+    </div>
+
+</body>
+</html>
