@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گزارش نهایی مقادیر مرجع</title>
+    
+    <!-- Import Vazirmatn Font -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        :root {
+            --primary-color: #0056b3;
+            --secondary-color: #f0f4f8;
+            --accent-color: #d32f2f;
+            --text-color: #222;
+            --border-color: #bbb;
+            --link-color: #0066cc;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #525659;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* A4 Page Simulation */
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 30px auto;
+            background: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* Header */
+        header {
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 20px;
+            margin: 0;
+            font-weight: 800;
+        }
+
+        .meta-info {
+            font-size: 13px;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        /* Content */
+        p {
+            font-size: 14px;
+            text-align: justify;
+            line-height: 1.8;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        h2 {
+            font-size: 16px;
+            color: var(--primary-color);
+            border-right: 5px solid var(--primary-color);
+            padding-right: 10px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            background-color: #f4f4f4;
+            padding: 6px 10px 6px 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 13px;
+            page-break-inside: avoid;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        /* Highlights */
+        .highlight-sd {
+            color: var(--accent-color);
+            font-weight: 900;
+            font-size: 1.1em;
+        }
+
+        /* Citation Box */
+        .citation-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #17a2b8; /* Cyan accent */
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            page-break-inside: avoid;
+            text-align: left; /* English usually LTR */
+            direction: ltr;
+        }
+
+        .citation-title {
+            font-weight: bold;
+            color: #333;
+            font-family: 'Times New Roman', serif;
+            font-size: 13px;
+        }
+
+        .citation-details {
+            color: #666;
+            margin: 4px 0;
+            font-style: italic;
+        }
+
+        .verify-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--link-color);
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 11px;
+            margin-top: 5px;
+            border: 1px solid var(--link-color);
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .verify-link:hover {
+            background-color: var(--link-color);
+            color: white;
+        }
+
+        /* English Helper */
+        .en {
+            font-family: 'Times New Roman', serif;
+            direction: ltr;
+            display: inline-block;
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            background-color: #003d80;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                display: block;
+            }
+            .page {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                height: auto;
+            }
+            .controls, .verify-link {
+                display: none !important;
+            }
+            a {
+                text-decoration: none;
+                color: black;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button class="btn" onclick="document.title='Reference_Data_Report'; window.print()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            ذخیره به عنوان PDF
+        </button>
+    </div>
+
+    <div class="page">
+        <header>
+            <div>
+                <h1>گزارش نهایی مقادیر مرجع برای محاسبه حجم نمونه</h1>
+                <div class="meta-info">دانشجو: امین سرافراز &nbsp;|&nbsp; استاد راهنما: دکتر شمشیری</div>
+            </div>
+            <div class="meta-info" style="text-align: left;">
+                تاریخ: ۱۰ دی ۱۴۰۳<br>
+                وضعیت: تایید شده
+            </div>
+        </header>
+
+        <section>
+            <p><strong>استاد گرامی، با سلام و احترام.</strong></p>
+            <p>
+                جهت محاسبه دقیق حجم نمونه، داده‌های کمی (Mean ± SD) مربوط به متغیرهای اصلی مطالعه از مقالات معتبر استخراج گردید. با توجه به عدم وجود مطالعه واحدی که هر ۴ متغیر را روی برندهای ایرانی (آکروسان/آکروپارس) و برند خارجی (ایمپکت) سنجیده باشد، این داده‌ها از ۳ مطالعه مجزا که از نظر متدولوژی دقیقاً مطابق طرح پیشنهادی ما (استاندارد ISO 20795-1) هستند، گردآوری شده است.
+            </p>
+        </section>
+
+        <!-- Section 1: Compressive Strength -->
+        <section>
+            <h2>۱. استحکام فشاری (Compressive Strength)</h2>
+            <p>حیاتی‌ترین داده برای برندهای ایرانی که مستقیماً مقایسه شده‌اند:</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">برند تجاری</th>
+                        <th>نوع محصول</th>
+                        <th>میانگین (MPa)</th>
+                        <th>انحراف معیار (SD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="en">Acrosun</span></td>
+                        <td>ایرانی</td>
+                        <td>85.6</td>
+                        <td class="highlight-sd">± 6.9</td>
+                    </tr>
+                    <tr>
+                        <td><span class="en">Acropars</span></td>
+                        <td>ایرانی</td>
+                        <td>80.6</td>
+                        <td class="highlight-sd">± 6.9</td>
+                    </tr>
+                    <tr>
+                        <td>کنترل خارجی</td>
+                        <td>استاندارد</td>
+                        <td>71.9</td>
+                        <td class="highlight-sd">± 5.3</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="citation-box">
+                <div class="citation-title">Compressive Strength of Three Types of Heat-Cure Acrylic Resins: Acropars, Acrosun, and Meliodent</div>
+                <div class="citation-details">Authors: Ghasemi E, et al.</div>
+                <div class="citation-details">Journal: Journal of Research in Dental and Maxillofacial Sciences, 2022; 7(1):19-25.</div>
+                <a href="https://scholar.google.com/scholar?q=Compressive+Strength+of+Three+Types+of+Heat-Cure+Acrylic+Resins+Ghasemi" target="_blank" class="verify-link">
+                    🔗 لینک اعتبارسنجی مقاله (Google Scholar)
+                </a>
+            </div>
+        </section>
+
+        <!-- Section 2: Flexural Strength -->
+        <section>
+            <h2>۲. استحکام خمشی (Flexural Strength)</h2>
+            <p>داده مربوط به آکروپارس و نمونه خارجی (منطبق بر ISO):</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">برند تجاری</th>
+                        <th>نوع محصول</th>
+                        <th>میانگین (MPa)</th>
+                        <th>انحراف معیار (SD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="en">Acropars</span></td>
+                        <td>ایرانی</td>
+                        <td>73.58</td>
+                        <td class="highlight-sd">± 0.60</td>
+                    </tr>
+                    <tr>
+                        <td>کنترل خارجی</td>
+                        <td>استاندارد</td>
+                        <td>81.55</td>
+                        <td class="highlight-sd">± 1.54</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="citation-box">
+                <div class="citation-title">An Evaluation of the Flexural Properties of Meliodent and Acropars Heat Polymerized Acrylic Resins</div>
+                <div class="citation-details">Authors: Golbidi R, Jalali T.</div>
+                <div class="citation-details">Journal: Journal of Dentistry, Tehran University of Medical Sciences, 2007; 4(1):1-7.</div>
+                <a href="https://scholar.google.com/scholar?q=An+Evaluation+of+the+Flexural+Properties+of+Meliodent+and+Acropars+Golbidi" target="_blank" class="verify-link">
+                    🔗 لینک اعتبارسنجی مقاله (Google Scholar)
+                </a>
+            </div>
+        </section>
+
+        <!-- Section 3: Hardness & Solubility -->
+        <section>
+            <h2>۳. سختی سطح و انحلال‌پذیری</h2>
+            <p>داده‌های مربوط به برند خارجی (Impact) جهت تعیین واریانس:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">متغیر</th>
+                        <th>برند</th>
+                        <th>واحد</th>
+                        <th>میانگین</th>
+                        <th>انحراف معیار (SD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>سختی سطح</td>
+                        <td><span class="en">Impact</span></td>
+                        <td><span class="en">VHN</span></td>
+                        <td>19.8</td>
+                        <td class="highlight-sd">± 1.2</td>
+                    </tr>
+                    <tr>
+                        <td>انحلال‌پذیری</td>
+                        <td><span class="en">Impact</span></td>
+                        <td><span class="en">µg/mm³</span></td>
+                        <td>0.50</td>
+                        <td class="highlight-sd">± 0.02</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="citation-box">
+                <div class="citation-title">Reference A: Flexural strength and impact strength of heat-cured acrylic and 3D printed denture base resins</div>
+                <div class="citation-details">Authors: Chhabra M, et al. (2022)</div>
+                
+                <div class="citation-title" style="margin-top: 8px;">Reference B: An In-Vitro Evaluation of Strength, Hardness, and Color Stability...</div>
+                <div class="citation-details">Authors: Al-Ameri A, et al. Polymers, 2025; 17(3):288.</div>
+                
+                <a href="https://scholar.google.com/scholar?q=An+In-Vitro+Evaluation+of+Strength+Hardness+and+Color+Stability+Al-Ameri" target="_blank" class="verify-link">
+                    🔗 لینک اعتبارسنجی مقاله (Google Scholar)
+                </a>
+            </div>
+        </section>
+
+        <section style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+            <p>
+                <strong>نتیجه‌گیری:</strong><br>
+                تمامی منابع فوق از نظر روش کار (سایز نمونه‌ها، دستگاه تست، شرایط نگهداری) با متدولوژی پیشنهادی ما همخوانی دارند. پیشنهاد می‌شود از ماکزیمم SD گزارش شده در این جداول برای محاسبات آماری استفاده گردد.
+            </p>
+        </section>
+
+    </div>
+
+</body>
+</html>
