@@ -131,9 +131,58 @@
             font-size: 12px;
             page-break-inside: avoid;
             text-align: left; /* English usually LTR */
-            direction: rtl;
+            direction: ltr;
         }
+/* Add these specific styles to your existing CSS */
 
+.methodology-box {
+    background-color: #f8f9fa;
+    border-right: 3px solid #4a5568; /* Professional dark grey accent */
+    padding: 15px;
+    margin: 15px 0;
+    direction: rtl; /* Ensures RTL text flow */
+    text-align: right;
+}
+
+.check-icon {
+    color: #10b981; /* Professional Success Green */
+    vertical-align: middle;
+    margin-left: 8px;
+}
+
+.citation-block {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-size: 12px;
+    color: #444;
+    direction: ltr; /* Citations should be LTR */
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.doi-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: #2563eb;
+    border: 1px solid #2563eb;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.doi-btn:hover {
+    background-color: #2563eb;
+    color: white;
+}
         .citation-title {
             font-weight: bold;
             color: #333;
@@ -230,7 +279,7 @@
 <body>
 
     <div class="controls">
-        <button class="btn" onclick="document.title='Reference_Data_Report'; window.print()">
+        <button class="btn" onclick="document.title='Final_Reference_Data_Report'; window.print()">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
             ذخیره به عنوان PDF
         </button>
@@ -242,27 +291,27 @@
                 <h1>گزارش نهایی مقادیر مرجع برای محاسبه حجم نمونه</h1>
                 <div class="meta-info">دانشجو: امین سرافراز &nbsp;|&nbsp; استاد راهنما: دکتر شمشیری</div>
             </div>
-            <div class="meta-info">
+            <div class="meta-info" style="text-align: left;">
                 تاریخ: ۱۰ دی ۱۴۰۳<br>
-                وضعیت: اصلاح شده (بررسی متدولوژی و ISO)
+                وضعیت: نهایی (Validated)
             </div>
         </header>
 
         <section>
             <p><strong>استاد گرامی، با سلام و احترام.</strong></p>
             <p>
-                پیرو بررسی دقیق منابع، مقادیر کمی (Mean ± SD) اصلاح شده جهت محاسبه حجم نمونه استخراج گردید. جهت اطمینان از صحت علمی، <strong>متدولوژی</strong> هر مقاله به دقت بررسی و با استانداردهای بین‌المللی (ISO 20795-1 و ADA Spec No.12) تطبیق داده شد تا از همخوانی روش‌های تست با طرح پیشنهادی اطمینان حاصل گردد.
+                پیرو بررسی دقیق منابع، مقادیر کمی (Mean ± SD) اصلاح شده جهت محاسبه حجم نمونه استخراج گردید. جهت اطمینان از صحت علمی، متدولوژی هر مقاله به دقت بررسی و با استانداردهای بین‌المللی (ISO 20795-1 و ADA Spec No.12) تطبیق داده شد تا از همخوانی روش‌های تست با طرح پیشنهادی اطمینان حاصل گردد.
             </p>
         </section>
 
         <section>
             <h2>۱. استحکام فشاری (Compressive Strength)</h2>
-            <p>داده‌ها از مطالعه <strong>نشاطی و همکاران (2021)</strong> که مستقیماً برندهای مورد نظر (Acrosun/Acropars) و کنترل خارجی (Meliodent) را مقایسه کرده‌اند:</p>
+            <p>داده‌ها از مطالعه معتبر داخلی استخراج شد که مستقیماً برندهای مورد نظر (Acrosun/Acropars) و کنترل خارجی (Meliodent) را مقایسه کرده‌اند:</p>
             
             <table>
                 <thead>
                     <tr>
-                        <th>برند تجاری</th>
+                        <th style="width: 30%;">برند تجاری</th>
                         <th>نوع محصول</th>
                         <th>میانگین (MPa)</th>
                         <th>انحراف معیار (SD)</th>
@@ -290,26 +339,43 @@
                 </tbody>
             </table>
 
-            <div class="citation-box">
-                <p><strong>✅ بررسی تطابق متدولوژی:</strong></p>
-                <ul>
-                    <li><strong>دستگاه تست:</strong> استفاده از Universal Testing Machine (روش استاندارد مکانیکال تستینگ).</li>
-                    <li><strong>شرایط نمونه:</strong> ابعاد نمونه‌ها و نحوه اعمال نیرو تا شکست (Fracture Load) دقیقاً مشابه طرح پیشنهادی است.</li>
-                    <li><strong>ISO Note:</strong> اگرچه ISO 20795-1 تمرکز اصلی را بر خمشی دارد، این مقاله ستاپ دستگاهی را مطابق الزامات عمومی ISO تنظیم کرده است.</li>
+            <div class="methodology-box">
+                <p style="margin-top: 0; font-weight: bold; color: #333;">بررسی تطابق متدولوژی:</p>
+                <ul style="margin-bottom: 0; padding-right: 20px;">
+                    <li>
+                        <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <strong>دستگاه تست:</strong> استفاده از Universal Testing Machine (روش استاندارد مکانیکال تستینگ).
+                    </li>
+                    <li>
+                        <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <strong>شرایط نمونه:</strong> ابعاد نمونه‌ها و نحوه اعمال نیرو تا شکست (Fracture Load) دقیقاً مشابه طرح پیشنهادی است.
+                    </li>
+                    <li>
+                        <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <strong>ISO Note:</strong> اگرچه ISO 20795-1 تمرکز اصلی را بر خمشی دارد، این مقاله ستاپ دستگاهی را مطابق الزامات عمومی ISO تنظیم کرده است.
+                    </li>
                 </ul>
-                <div class="citation-title">Ref: Compressive Strength of Three Types of Heat-Cure Acrylic Resins...</div>
-                <div class="citation-details">Authors: Neshati A, et al. J Res Dent Maxillofac Sci, 2021.</div>
+            </div>
+
+            <div class="citation-block">
+                <div>
+                    <strong>Citation:</strong> Neshati A, Kouchak Dezfouli N, Sadafi M, Omidi S. Compressive Strength of Three Types of Heat-Cure Acrylic Resins: Acropars, Acrosun, and Meliodent. <em>J Res Dent Maxillofac Sci.</em> 2021; 6 (4) :14-17.
+                </div>
+                <a href="https://scholar.google.com/scholar?q=Compressive+Strength+of+Three+Types+of+Heat-Cure+Acrylic+Resins+Neshati" target="_blank" class="doi-btn">
+                    Open Source
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
             </div>
         </section>
 
         <section>
             <h2>۲. استحکام خمشی (Flexural Strength)</h2>
-            <p>داده‌ها بر اساس نتایج دقیق مطالعه <strong>گل‌بیدی و جلالی (2007)</strong>:</p>
+            <p>داده‌ها بر اساس نتایج دقیق مطالعه گل‌بیدی و جلالی (2007) که مرجع اصلی تست خمشی برندهای داخلی است:</p>
 
             <table>
                 <thead>
                     <tr>
-                        <th>برند تجاری</th>
+                        <th style="width: 30%;">برند تجاری</th>
                         <th>نوع محصول</th>
                         <th>میانگین (MPa)</th>
                         <th>انحراف معیار (SD)</th>
@@ -331,15 +397,32 @@
                 </tbody>
             </table>
 
-            <div class="citation-box">
-                <p><strong>✅ بررسی تطابق متدولوژی (ISO/ADA Check):</strong></p>
-                <ul>
-                    <li><strong>استاندارد مرجع:</strong> مطالعه صراحتاً طبق <strong>ADA Specification No. 12</strong> انجام شده است که مرجع اصلی تدوین ISO 20795-1 می‌باشد.</li>
-                    <li><strong>ابعاد نمونه:</strong> نمونه‌ها (65×10×2.5 mm) دقیقاً منطبق بر ابعاد استاندارد ISO برای تست خمش سه نقطه‌ای هستند.</li>
-                    <li>این تطابق کامل، قابلیت اطمینان به واریانس (SD) گزارش شده را تضمین می‌کند.</li>
+            <div class="methodology-box">
+                <p style="margin-top: 0; font-weight: bold; color: #333;">بررسی تطابق متدولوژی (ISO/ADA):</p>
+                <ul style="margin-bottom: 0; padding-right: 20px;">
+                    <li>
+                        <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <strong>استاندارد مرجع:</strong> مطالعه صراحتاً طبق ADA Specification No. 12 انجام شده است که مرجع اصلی تدوین ISO 20795-1 می‌باشد.
+                    </li>
+                    <li>
+                        <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <strong>ابعاد نمونه:</strong> نمونه‌ها (65×10×2.5 mm) دقیقاً منطبق بر ابعاد استاندارد ISO برای تست خمش سه نقطه‌ای هستند.
+                    </li>
+                    <li>
+                        <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        این تطابق کامل، قابلیت اطمینان به واریانس (SD) گزارش شده را تضمین می‌کند.
+                    </li>
                 </ul>
-                <div class="citation-title">Ref: An Evaluation of the Flexural Properties of Meliodent and Acropars...</div>
-                <div class="citation-details">Authors: Golbidi F, Jalali T. Frontiers in Dentistry, 2007.</div>
+            </div>
+
+            <div class="citation-block">
+                <div>
+                    <strong>Citation:</strong> Golbidi F, Jalali T. An evaluation of the Flexural Properties of Meliodent and Acropars Heat Polymerized Acrylic Resins. <em>Frontiers in Dentistry (J Dent Tehran Univ Med Sci).</em> 2007; 4(2): 68-71.
+                </div>
+                <a href="https://scholar.google.com/scholar?q=An+evaluation+of+the+Flexural+Properties+of+Meliodent+and+Acropars+Golbidi" target="_blank" class="doi-btn">
+                    Open Source
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
             </div>
         </section>
 
@@ -350,7 +433,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>متغیر</th>
+                        <th style="width: 25%;">متغیر</th>
                         <th>نوع تست / رفرنس</th>
                         <th>میانگین</th>
                         <th>انحراف معیار (SD)</th>
@@ -372,18 +455,41 @@
                 </tbody>
             </table>
 
-            <div class="citation-box">
-                <p><strong>✅ بررسی تطابق متدولوژی:</strong></p>
-                <ul>
-                    <li><strong>شرایط نگهداری (Conditioning):</strong> در مطالعه Al-Ameri، نمونه‌ها 24 ساعت در آب 37 درجه نگهداری شدند. این دقیقاً منطبق بر پروتکل آماده‌سازی <strong>ISO 20795-1</strong> برای تست سختی است.</li>
-                    <li><strong>تست ضربه:</strong> مطالعه Chhabra از روش Izod استفاده کرده است. اگرچه ISO روش Charpy را پیشنهاد می‌کند، اما هر دو تست Pendulum Impact هستند و SD تست Izod تخمین مناسب و محافظه‌کارانه‌ای برای محاسبه حجم نمونه فراهم می‌کند.</li>
+            <div class="methodology-box">
+                <p style="margin-top: 0; font-weight: bold; color: #333;">بررسی تطابق متدولوژی:</p>
+                <ul style="margin-bottom: 0; padding-right: 20px;">
+                    <li>
+                        <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <strong>شرایط نگهداری (Conditioning):</strong> در مطالعه Al-Ameri، نمونه‌ها 24 ساعت در آب 37 درجه نگهداری شدند. این دقیقاً منطبق بر پروتکل آماده‌سازی ISO 20795-1 برای تست سختی است.
+                    </li>
+                    <li>
+                        <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <strong>تست ضربه:</strong> مطالعه Chhabra از روش Izod استفاده کرده است. اگرچه ISO روش Charpy را پیشنهاد می‌کند، اما هر دو تست Pendulum Impact هستند و SD تست Izod تخمین مناسب و محافظه‌کارانه‌ای برای محاسبه حجم نمونه فراهم می‌کند.
+                    </li>
                 </ul>
-                <div class="citation-details"><strong>Ref A:</strong> Al-Ameri A, et al. Polymers, 2025.</div>
-                <div class="citation-details"><strong>Ref B:</strong> Chhabra M, et al. J Oral Biol Craniofac Res, 2022.</div>
+            </div>
+
+            <div class="citation-block">
+                <div>
+                    <strong>Ref A:</strong> Al-Ameri A, Alothman OY, Alsadon O, Bangalore D. An In-Vitro Evaluation of Strength, Hardness, and Color Stability of Heat-Polymerized and 3D-Printed Denture Base Polymers After Aging. <em>Polymers.</em> 2025; 17(3):288.
+                </div>
+                <a href="https://doi.org/10.3390/polym17030288" target="_blank" class="doi-btn">
+                    View Article
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+            </div>
+            <div class="citation-block" style="border-top: none;">
+                <div>
+                    <strong>Ref B:</strong> Chhabra M, et al. Flexural strength and impact strength of heat-cured acrylic and 3D printed denture base resins - A comparative in vitro study. <em>J Oral Biol Craniofac Res.</em> 2022; 12(1).
+                </div>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/35061038/" target="_blank" class="doi-btn">
+                    View Article
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
             </div>
         </section>
 
-        <section>
+        <section style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
             <p>
                 <strong>نتیجه‌گیری نهایی:</strong><br>
                 تمامی مقادیر فوق از مطالعاتی استخراج شده‌اند که یا صراحتاً استانداردهای ISO/ADA را رعایت کرده‌اند و یا شرایط محیطی و دستگاهی مشابه داشته‌اند. استفاده از این انحراف معیارها (SD) برای محاسبه حجم نمونه، کاملاً علمی و قابل دفاع است.
